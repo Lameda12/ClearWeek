@@ -2,7 +2,7 @@
 
 **Alamedin Sabit** · SideQuest · Persona-driven AI agent
 
-**Shareable project link:** Pending. The code is committed in a local repository with no remote, and no public deployment exists yet. Publishing the repository and the offline demo is waiting on go-ahead, and the deployed URL must be tested before it is listed here. The local setup is in the [showcase README](../../README.md).
+**Shareable project link:** <https://github.com/Lameda12/ClearWeek> (public). **Live offline demo:** <https://clearweek-woad.vercel.app> (offline mode only, sample data, no AI calls, no secrets; verified November 9, 2026 as described in the [README](../../README.md)). The Gemini and Supabase private mode is not deployed. Setup for it is in the [showcase README](../../README.md).
 
 ## How the build answers the pitch
 
@@ -14,7 +14,7 @@ Details and dates are in the [verification record](../test-results.md); redacted
 
 - **November 7, hosted:** one fresh Gemini response with recorded token usage, and one approved task that survived reload in hosted Supabase. A replay of the same approval left one row. Anonymous access was denied by the app and by Supabase. That task was saved before provenance checks, so it now loads as *legacy, not verified*.
 - **November 9, local:** lint, type checking, 28 unit tests, the four original browser tests (rerun after the changes) plus one new conflict test, the production build, and disposable PostgreSQL checks passed. Model failure and retry tests use mocks. No new Gemini call was made.
-- **Not verified:** a real second hosted account and hosted row-level security with a second user's token. A mocked non-owner token returns 403 on both private endpoints with no provider call. The website has not been publicly deployed.
+- **Not verified:** a real second hosted account and hosted row-level security with a second user's token. A mocked non-owner token returns 403 on both private endpoints with no provider call. Only the offline demo is publicly deployed; private mode is not.
 
 ## What changed and why
 

@@ -16,8 +16,8 @@ These captures show the offline demo with the historical sample. [Mobile screens
 
 ## Repository and live demo
 
-- **Repository:** pending. The code is committed locally; publishing it to GitHub is waiting on explicit go-ahead (see [project submission](docs/submission/project.md)).
-- **Public demo URL:** pending, for the same reason. The public demo would run the offline mode with no Gemini or Supabase secrets, so visitors cannot trigger a provider call or reach private data. The anonymous endpoints return HTTP 401 in that mode, which the browser tests and server tests check locally. This is not yet verified on a deployed URL.
+- **Repository:** <https://github.com/Lameda12/ClearWeek> (`main` is the app; the extraction experiment is on the separate `feature/schedule-extraction` branch, off by default).
+- **Live offline demo:** <https://clearweek-woad.vercel.app>. Verified on November 9, 2026 in a real browser: the page loads as "Offline demo", evidence opens, the prepared draft can be edited (labelled "Edited by you"), reviewed and approved, the task survives reload, a resolution can be recorded, the mobile and desktop layouts render, and the adjacent example loads, with 0 browser errors and the only network host being the deployment itself. The deployment has **no environment variables**: no Gemini or Supabase secrets and no extraction flag. Its private API routes return HTTP 401 without a token (`/api/proposal`, `/api/workspace`), so visitors cannot trigger a provider call or reach hosted data. Private mode (Gemini and Supabase) is **not** deployed. It was deployed from commit `661e559` by the Vercel CLI, so it only changes when redeployed.
 
 ## Verified results
 
@@ -25,7 +25,7 @@ Full details, dated history and the not-verified list are in the [verification r
 
 - **Local, November 9, 2026:** lint, type checking, 28 unit tests, the four original browser tests plus one new conflict test against the production server, a production build, and disposable PostgreSQL checks all passed.
 - **Hosted, November 7, 2026 (redacted [evidence](docs/hosted-evidence.md)):** one fresh Gemini response with recorded usage, and one approval that survived reload. That approval predates provenance checks, so it loads as *legacy, not verified*. No new provider call was made since.
-- **Not verified:** a real second signed-in hosted account (the mocked non-owner check passes), hosted row-level security with a second user's token, and any public deployment.
+- **Not verified:** a real second signed-in hosted account (the mocked non-owner check passes), hosted row-level security with a second user's token, and private mode on a public deployment (only the offline demo is deployed).
 
 ## Research note: extraction experiment
 
