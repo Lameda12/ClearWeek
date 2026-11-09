@@ -10,7 +10,7 @@ I updated this plan to reflect current progress. The week numbers and hours belo
 | Week 1 | 2.5 hours | Review Chloe’s screenshots, choose one conflict, and define the pitch and build scope. | Evidence mapped to screenshots. Pitch and updated plan drafted. |
 | Week 2 | 5 hours | Build the schedule, evidence view, and review and approval flow. | Working in the offline demo. The follow-up survives reload in the same browser. |
 | Week 3 | 3 hours | Verify the hosted workflow, production build, and boundary cases. | Live Gemini and hosted persistence passed on Nov 7. The adjacent example, local SQL checks, and production browser tests passed. A Nov 9 review added provenance and conflict fixes with tests. Real second-account hosted checks remain unrun. |
-| Week 4 | 2 hours | Prepare the README and record the demo. Review submission instructions and check links. | README and recording script drafted. Recording, shareable project link, and full module review remain open. |
+| Week 4 | 2 hours | Prepare the README and record the demo. Review submission instructions and check links. | README and recording script drafted. Repository and live demo are published (see the project submission). Recording and full module review remain open. |
 
 **Total planned effort:** 12.5 hours. **Actual logged time:** no entries available.
 

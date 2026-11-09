@@ -35,5 +35,5 @@ Done means the evidence-backed sample works through approval and reload on mobil
 - Return HTTP 409 for any approval or resolution that differs from the saved one; keep exact replay idempotent. Offline mode raises the same conflict.
 - Load rows saved before these fields as legacy and unverified. No migration: the new fields live in the existing `payload` column, so the applied migration and hosted data are untouched.
 - Render times deterministically. Verify the model ID and prices against the provider's pricing page.
-- Publish only reviewed files, with the offline demo as the public deployment and no Gemini or Supabase secrets on it. Verify the deployed URL before documenting it. **Status: blocked on go-ahead to create the public repository and deployment.**
+- Publish only reviewed files, with the offline demo as the public deployment and no Gemini or Supabase secrets on it. Verify the deployed URL before documenting it. **Status (Nov 9): done.** Repository <https://github.com/Lameda12/ClearWeek>; offline demo <https://clearweek-woad.vercel.app>, verified in a browser before being documented.
 - Budget: CAD $10 total. Private mode stays on the free tier; no new paid service; no extra Gemini calls for these changes.

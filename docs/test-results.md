@@ -33,7 +33,7 @@ The request ledger is global to the Supabase project, not per owner: 20 attempts
 ### Not verified
 
 - No new Gemini call was made in this round. The live Gemini result below is the November 7 run.
-- **Public deployment.** Supabase being hosted does not mean the website is deployed. As of this summary no public URL exists (see the repository and deployment status in the README).
+- **Public deployment (updated November 9, 2026, after the summary above was first written).** Supabase being hosted never meant the website was deployed. The **offline demo only** is now deployed at <https://clearweek-woad.vercel.app> from commit `661e559` with no environment variables. Checked by `curl` and a real-browser run: `/` and `/adjacent` return 200, `POST /api/proposal`, `GET /api/workspace` and `POST /api/workspace` return 401, `/api/extract` returns 404 (main has no extraction code), and the full core flow (evidence, edit, review, approve, reload, resolution, layouts) ran with 0 browser errors and no request to any host but the deployment. Private mode (Gemini, Supabase) is not deployed and its hosted verification above is unchanged.
 - Second-account hosted checks, as above.
 - The detailed Brightspace module instructions and rubric remain unavailable.
 
