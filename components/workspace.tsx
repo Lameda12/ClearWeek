@@ -5,10 +5,10 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { createClient, type Session } from "@supabase/supabase-js";
 import { ArrowRight, CalendarDays, ChevronDown, CircleCheck, Clock3, FileText, Flag, History, LockKeyhole, Waves } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { evidence, find_conflicts, formatTime, list_events } from "@/lib/scenario";
+import { evidence, currentConflicts, formatTime, listEvents } from "@/lib/scenario";
 import { applyAction, draft, editProposal, emptyState, normalizeWorkspace, provenanceLabel, type Action, type Proposal, type Workspace } from "@/lib/workflow";
 
-const [conflict] = find_conflicts();
+const [conflict] = currentConflicts();
 const sourceIds = [...conflict.sources, "swap", "availability"] as const;
 const storageKey = "clearweek:oct23:v1";
 type Props = { privateMode: boolean; supabaseUrl?: string; publishableKey?: string };
@@ -156,7 +156,7 @@ export function WorkspaceView({ privateMode, supabaseUrl, publishableKey }: Prop
         <section id="schedule" className="panel schedule" aria-labelledby="schedule-title">
           <div className="section-head"><div className="section-icon"><CalendarDays size={20} aria-hidden="true" /></div><div><h2 id="schedule-title">Day schedule</h2><p>4 commitments</p></div></div>
           <ol className="events">
-            {list_events().map(event => <li key={event.id} className={`event ${event.category.toLowerCase()}`}>
+            {listEvents().map(event => <li key={event.id} className={`event ${event.category.toLowerCase()}`}>
               <div className="event-time">{formatTime(event.start)} <span>–</span> {formatTime(event.end)}</div>
               <div className="event-main"><h3>{event.title}</h3><span className="category">{event.category}</span></div>
               {event.readOnly && <div className="subscribed"><LockKeyhole size={12} aria-hidden="true" /> Subscribed calendar · read-only</div>}

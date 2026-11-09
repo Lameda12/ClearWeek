@@ -54,5 +54,5 @@ export function formatTime(value: string | number) {
   const at = (typeof value === "string" ? instant(value) : Temporal.Instant.fromEpochMilliseconds(value)).toZonedDateTimeISO(zone);
   return `${at.hour % 12 || 12}:${String(at.minute).padStart(2, "0")} ${at.hour < 12 ? "AM" : "PM"}`;
 }
-export const list_events = () => events;
-export const find_conflicts = () => findConflicts(list_events());
+export const listEvents = () => events;
+export const currentConflicts = () => findConflicts(listEvents());
