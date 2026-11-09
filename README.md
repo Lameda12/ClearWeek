@@ -91,6 +91,10 @@ Next.js (App Router), TypeScript, Zod, Supabase and Gemini 3.1 Flash-Lite (`gemi
 
 The app uses fixed sample schedules and does not import calendars, contact employers, send messages, or change shifts. The synthetic example shows that exactly adjacent events have no time overlap and leaves travel time outside the calculation. [Recording script](docs/demo-script.md) · [Submission drafts](docs/submission/checklist.md)
 
+## Schedule-text extraction (prepared, no model yet)
+
+An optional preview lets you paste schedule text, review candidate mentions, correct them and confirm. It is off by default, saves nothing, and creates no events or tasks. The public demo does not use it. No fine-tuned model has been loaded: tests use mocked output and a stub service. Design, safety rules, local-inference plan and the handoff checklist are in [docs/extraction.md](docs/extraction.md). Gemini draft generation is separate and unchanged.
+
 ## Checks and handoff
 
 ```sh

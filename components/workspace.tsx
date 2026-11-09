@@ -5,13 +5,14 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { createClient, type Session } from "@supabase/supabase-js";
 import { ArrowRight, CalendarDays, ChevronDown, CircleCheck, Clock3, FileText, Flag, History, LockKeyhole, Waves } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ImportSchedule } from "@/components/import-schedule";
 import { evidence, currentConflicts, formatTime, listEvents } from "@/lib/scenario";
 import { applyAction, draft, editProposal, emptyState, normalizeWorkspace, provenanceLabel, type Action, type Proposal, type Workspace } from "@/lib/workflow";
 
 const [conflict] = currentConflicts();
 const sourceIds = [...conflict.sources, "swap", "availability"] as const;
 const storageKey = "clearweek:oct23:v1";
-type Props = { privateMode: boolean; supabaseUrl?: string; publishableKey?: string };
+type Props = { privateMode: boolean; supabaseUrl?: string; publishableKey?: string; extraction?: { mode: "sample" | "local"; maxChars: number } };
 
 async function api<T>(path: string, token: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -23,7 +24,7 @@ async function api<T>(path: string, token: string, options?: RequestInit): Promi
   return body;
 }
 
-export function WorkspaceView({ privateMode, supabaseUrl, publishableKey }: Props) {
+export function WorkspaceView({ privateMode, supabaseUrl, publishableKey, extraction }: Props) {
   const auth = useMemo(() => supabaseUrl && publishableKey ? createClient(supabaseUrl, publishableKey) : null, [supabaseUrl, publishableKey]);
   const [session, setSession] = useState<Session | null>(null);
   const [state, setState] = useState<Workspace>(emptyState);
@@ -219,6 +220,8 @@ export function WorkspaceView({ privateMode, supabaseUrl, publishableKey }: Prop
           {history.length ? <ul className="history">{history.map(entry => <li key={entry.label}><strong>{entry.label}</strong><time dateTime={entry.time}>{new Date(entry.time).toLocaleString("en-CA", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Halifax" })}</time></li>)}</ul> : <p>No actions recorded yet.</p>}
         </section>
       </div>
+
+      {extraction && (!privateMode || session) && <ImportSchedule mode={extraction.mode} maxChars={extraction.maxChars} token={privateMode ? token : undefined} />}
 
       <footer><span>ClearWeek · Side Quest</span>{privateMode && session ? <Button variant="ghost" disabled={busy} onClick={() => void run(async () => {
         const result = await auth?.auth.signOut();

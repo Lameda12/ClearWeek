@@ -1,0 +1,7 @@
+# NOT installed or tested yet. Use Python 3.12 (for example `uv venv --python 3.12`); PyTorch wheel support for the
+# system Python 3.14 has not been checked. Versions marked "notebook" are the training notebook's pins.
+torch>=2.4            # macOS arm64 wheel includes MPS support
+transformers==4.57.1  # notebook
+peft==0.17.1          # notebook
+accelerate==1.10.1    # notebook
+# bitsandbytes is CUDA-only; the notebook used it for 4-bit training on small GPUs and it is not needed here.

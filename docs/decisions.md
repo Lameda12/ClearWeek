@@ -10,3 +10,4 @@
 - Approval conflicts: exact replay (same version and text) is idempotent; anything else returns HTTP 409. The primary key makes the first writer win. A forged or altered draft is rejected earlier with 400 because its proof fails.
 - The public deployment is the offline demo with no secrets. Private mode is not deployed publicly.
 - Quotas and ledger counters are not reset or changed by these fixes.
+- November 9, 2026: Extraction is a separate, optional, read-only preview. It does not create events or tasks because storage is tied to the fixed `bus:shift` fixture. The model (when it exists) runs in a separate loopback service, never inside a Next.js handler, and is disabled on Vercel. Responses are validated by schema and exact-substring grounding, all-or-nothing. First local path is transformers + PEFT on MPS for fidelity to the notebook; faster runtimes wait for regression checks.
