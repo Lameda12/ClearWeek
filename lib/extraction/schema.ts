@@ -24,7 +24,7 @@ export type Mention = z.infer<typeof mention>;
 
 export type ExtractionErrorCode =
   | "disabled" | "invalid_input" | "unavailable" | "timeout" | "malformed"
-  | "invalid_schema" | "ungrounded" | "busy" | "unsupported_sample" | "misconfigured";
+  | "invalid_schema" | "ungrounded" | "ambiguous_grounding" | "busy" | "unsupported_sample" | "misconfigured";
 
 export class ExtractionError extends Error {
   constructor(public code: ExtractionErrorCode, message: string, public status: number) {
@@ -55,12 +55,47 @@ const unfence = (raw: string) => {
   return value.trim();
 };
 
+export type Grounding =
+  | { status: "exact"; text: string }
+  | { status: "recovered"; text: string; from: string }
+  | { status: "ambiguous" }
+  | { status: "absent" };
+
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 /**
- * Validates raw model output against the schema and the source text. All-or-nothing: any malformed JSON,
- * unknown slot, extra field, or text that is not an exact substring of the source rejects the whole response.
- * The substring check tests grounding only. It does not show the slot is right or that the phrase is about the right event.
+ * Grounds one phrase in the source, as conservatively as possible.
+ * 1. Exact substring: accepted as is.
+ * 2. Otherwise, a case-insensitive match is accepted only if it finds exactly ONE span (overlapping spans count),
+ *    and the source's own spelling is returned. The phrase is escaped, so it is matched literally.
+ * Nothing else is tried: no fuzzy matching, no punctuation stripping, no word substitution, no Unicode normalization
+ * (so "e" never matches "é", and a decomposed accent never matches a composed one). The "i" flag is used without
+ * "u" or case folding, so a match never changes length and offsets stay valid.
+ * This repairs copying errors only. It cannot fix a wrong slot or a phrase attached to the wrong event.
  */
-export function parseModelOutput(raw: unknown, source: string): Mention[] {
+export function groundPhrase(source: string, phrase: string): Grounding {
+  if (phrase && source.includes(phrase)) return { status: "exact", text: phrase };
+  if (!phrase) return { status: "absent" };
+  const pattern = new RegExp(escapeRegExp(phrase), "gi");
+  const spans: { start: number; end: number }[] = [];
+  for (let match = pattern.exec(source); match; match = pattern.exec(source)) {
+    spans.push({ start: match.index, end: match.index + match[0].length });
+    pattern.lastIndex = match.index + 1; // overlapping matches count toward ambiguity
+  }
+  if (spans.length === 0) return { status: "absent" };
+  if (spans.length > 1) return { status: "ambiguous" };
+  return { status: "recovered", text: source.slice(spans[0].start, spans[0].end), from: phrase };
+}
+
+export type GroundedMention = Mention & { recoveredFrom?: string };
+
+/**
+ * Validates raw model output against the schema and the source text. All-or-nothing: malformed JSON, an unknown slot,
+ * an extra field, a phrase that is absent from the source, or a phrase that only matches ambiguously rejects the whole
+ * response. A case-only copying error is repaired when `groundPhrase` allows it, and the repair is recorded.
+ * Grounding is not correctness: a real phrase under the wrong slot passes. The caller keeps the raw output.
+ */
+export function parseModelOutputDetailed(raw: unknown, source: string): GroundedMention[] {
   if (typeof raw !== "string") throw new ExtractionError("malformed", "The extractor returned something that is not text.", 502);
   let json: unknown;
   try { json = JSON.parse(unfence(raw)); }
@@ -68,18 +103,24 @@ export function parseModelOutput(raw: unknown, source: string): Mention[] {
   const parsed = extractionSchema.safeParse(json);
   if (!parsed.success) throw new ExtractionError("invalid_schema", "The extractor returned an unexpected structure or slot.", 502);
   const seen = new Set<string>();
-  const result: Mention[] = [];
+  const result: GroundedMention[] = [];
   for (const item of parsed.data.mentions) {
-    if (!source.includes(item.text)) {
-      throw new ExtractionError("ungrounded", "The extractor returned text that is not in your message.", 502);
-    }
-    const key = JSON.stringify([item.slot, item.text]);
+    const grounded = groundPhrase(source, item.text);
+    if (grounded.status === "absent") throw new ExtractionError("ungrounded", "The extractor returned text that is not in your message.", 502);
+    if (grounded.status === "ambiguous") throw new ExtractionError("ambiguous_grounding", "The extractor returned text that matches your message in more than one place only by capitalization.", 502);
+    const key = JSON.stringify([item.slot, grounded.text]);
     if (seen.has(key)) continue;
     seen.add(key);
-    result.push(item);
+    result.push(grounded.status === "recovered"
+      ? { slot: item.slot, text: grounded.text, recoveredFrom: grounded.from }
+      : { slot: item.slot, text: grounded.text });
   }
   return result;
 }
+
+/** Same as `parseModelOutputDetailed` without the recovery record. */
+export const parseModelOutput = (raw: unknown, source: string): Mention[] =>
+  parseModelOutputDetailed(raw, source).map(({ slot, text }) => ({ slot, text }));
 
 /** What is still unknown. Mentions are a flat list; nothing here resolves dates or builds events. */
 export function describeGaps(mentions: readonly Mention[]): string[] {

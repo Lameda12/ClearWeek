@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { sampleText } from "@/lib/extraction/providers";
 import { slotInfo, slots, type Slot } from "@/lib/extraction/schema";
 
-type Row = { id: number; slot: Slot; text: string };
+type Row = { id: number; slot: Slot; text: string; recoveredFrom?: string };
 type Result = { source: "sample" | "local"; model: string | null; text: string; gaps: string[] };
 type Props = { mode: "sample" | "local"; maxChars: number; token?: string };
 
@@ -35,7 +35,7 @@ export function ImportSchedule({ mode, maxChars, token }: Props) {
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? "Extraction failed.");
       setResult({ source: body.source, model: body.model, text: body.text, gaps: body.gaps });
-      setRows((body.mentions as { slot: Slot; text: string }[]).map((m, id) => ({ id, ...m })));
+      setRows((body.mentions as { slot: Slot; text: string; recoveredFrom?: string }[]).map((m, id) => ({ id, ...m })));
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Extraction failed.");
     } finally { setBusy(false); }
@@ -72,9 +72,9 @@ export function ImportSchedule({ mode, maxChars, token }: Props) {
             </select>
           </label>
           <label>Phrase
-            <input value={row.text} onChange={event => update(row.id, { text: event.target.value })} aria-invalid={!grounded(row)} />
+            <input value={row.text} onChange={event => update(row.id, { text: event.target.value, recoveredFrom: undefined })} aria-invalid={!grounded(row)} />
           </label>
-          <small>{grounded(row) ? slotInfo[row.slot].note : "This phrase is not in your message. Fix it or remove it."}</small>
+          <small>{grounded(row) ? slotInfo[row.slot].note : "This phrase is not in your message. Fix it or remove it."}{row.recoveredFrom ? ` The model wrote “${row.recoveredFrom}”; capitalization was corrected to match your message.` : ""}</small>
           <Button variant="ghost" onClick={() => { setRows(rows.filter(r => r.id !== row.id)); setConfirmed(false); }}>Remove</Button>
         </li>)}
       </ul>

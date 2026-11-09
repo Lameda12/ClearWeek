@@ -107,3 +107,35 @@ class RegressionHelperTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class GroundingTests(unittest.TestCase):
+    def test_exact_first_then_unique_case_insensitive(self):
+        from grounding import ground
+        self.assertEqual(ground("Friday and Friday", "Friday"), {"status": "exact", "text": "Friday"})
+        self.assertEqual(ground("See you FRIDAY", "friday"), {"status": "recovered", "text": "FRIDAY", "from": "friday"})
+        self.assertEqual(ground("The 23rd or the 24th", "the 23rd or the 24th")["status"], "recovered")
+
+    def test_rejects_ambiguous_overlapping_and_absent(self):
+        from grounding import ground
+        self.assertEqual(ground("Friday or FRIDAY", "friday")["status"], "ambiguous")
+        self.assertEqual(ground("aaa", "AA")["status"], "ambiguous")
+        self.assertEqual(ground("Friday", "Saturday")["status"], "absent")
+        self.assertEqual(ground("Friday", "")["status"], "absent")
+
+    def test_literal_matching_and_unicode(self):
+        from grounding import ground
+        self.assertEqual(ground("meet at 2 P.M. sharp", "2 p.m.")["text"], "2 P.M.")
+        self.assertEqual(ground("meet at 2 PXM sharp", "2 p.m.")["status"], "absent")
+        self.assertEqual(ground("Rendez-vous au CAFÉ", "café")["text"], "CAFÉ")
+        self.assertEqual(ground("встреча в ПЯТНИЦУ", "пятницу")["text"], "ПЯТНИЦУ")
+        self.assertEqual(ground("at the café", "cafe")["status"], "absent")          # accents are not ignored
+        self.assertEqual(ground("at the cafe", "café")["status"], "absent")
+        self.assertEqual(ground("Zoé said", "Zoé")["status"], "absent")    # no Unicode normalization
+        self.assertEqual(ground("straße", "STRASSE")["status"], "absent")             # no casefold
+        self.assertEqual(ground("2 PM, Friday", "2 PM Friday")["status"], "absent")   # no punctuation stripping
+
+    def test_length_preserved(self):
+        from grounding import ground
+        result = ground("Hello WORLD", "world")
+        self.assertEqual(len(result["text"]), len("world"))

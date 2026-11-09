@@ -33,6 +33,21 @@ Same in both: base `Qwen/Qwen3-1.7B` at a revision the run records; LoRA r=16, a
 
 `lib/extraction/schema.ts` validates every response with Zod (strict objects, six slots, at most 24 mentions of at most 200 characters) and checks **grounding**: each `text` must occur exactly, case-sensitively, in the submitted text. Any failure rejects the whole response (malformed JSON, unknown slot, extra field, text not in the source). Identical slot/text pairs are merged; a Markdown fence is tolerated, as in the notebook's evaluation.
 
+### Case-only recovery (added November 9, 2026)
+
+An exact substring match is tried first. If that fails, a phrase is **recovered only if a case-insensitive match finds exactly one span** in the source (overlapping spans count). The source's own spelling is returned and the repair is recorded (`recoveredFrom` in the API response and a note in the review UI); the raw model output is kept (`rawOutput`). The phrase is escaped and matched literally with the regex `i` flag (Python: `re.IGNORECASE`), not casefolding, so lengths and offsets never change. Ambiguous (several spans) and absent phrases are still rejected, and a rejected phrase rejects the whole response. There is **no** fuzzy matching, punctuation stripping, word substitution or Unicode normalization: "cafe" never matches "café", and a decomposed "é" never matches a composed one. The app (`lib/extraction/schema.ts`) and the evaluation helper (`local-extractor/grounding.py`) implement the same rule; they can differ only on exotic case-equivalence characters (Python's `IGNORECASE` also equates a few such as the Kelvin sign with "k"; JavaScript without the `u` flag does not), which is harmless because the source's own spelling is always the value returned.
+
+**Measured on saved raw outputs (no new inference):**
+
+| Set | Raw-grounded responses | Recovered-grounded | Phrases recovered / ambiguous / absent |
+| --- | --- | --- | --- |
+| 60 test examples (the local-run sample) | 60 / 60 | 60 / 60 | 0 / 0 / 0 |
+| Full adapter test set (Colab, 558) | 558 / 558 | 558 / 558 | 0 / 0 / 0 |
+| Full adapter dev set (Colab, 535) | 534 / 535 | 535 / 535 | 1 / 0 / 0 ("twelve in the afternoon" → "Twelve in the afternoon"; exact-set match 526 → 527 of 535) |
+| 10 ClearWeek messages (local run) | 9 / 10 | 10 / 10 | 1 / 0 / 0 ("the 23rd or the 24th" → "The 23rd or the 24th") |
+
+**Recovery fixes copying errors, not wrong slot meanings.** Every other failure on the ClearWeek messages (ranges filed as start times, merged date and time, omissions, no event association, no swap status) is unchanged by it. Grounding, raw or recovered, only shows that the text is in the message.
+
 Grounding is not correctness. A real phrase under the wrong slot, or attached to the wrong event, passes. That is why the UI labels candidates as suggestions, lets you change the slot, edit or remove a phrase (edits must still be in your message), lists what stays unresolved, and requires an explicit confirm.
 
 ## Modes and safety

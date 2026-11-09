@@ -2,7 +2,7 @@ import { authorize, failure, privateMode } from "@/lib/private-server";
 import { readLimitedBody } from "@/lib/http";
 import { extractionLimits, extractionMode } from "@/lib/extraction/config";
 import { createLocalProvider, sampleProvider } from "@/lib/extraction/providers";
-import { describeGaps, ExtractionError, normalizeInput, parseModelOutput, requestSchema } from "@/lib/extraction/schema";
+import { describeGaps, ExtractionError, normalizeInput, parseModelOutputDetailed, requestSchema } from "@/lib/extraction/schema";
 
 export const maxDuration = 30;
 
@@ -34,8 +34,8 @@ export async function POST(request: Request) {
     try { output = await provider.extract({ text, signal: request.signal }); }
     finally { inFlight = false; }
 
-    const mentions = parseModelOutput(output.raw, text);
-    return Response.json({ source: provider.id, model: output.model ?? null, text, mentions, gaps: describeGaps(mentions) },
+    const mentions = parseModelOutputDetailed(output.raw, text);
+    return Response.json({ source: provider.id, model: output.model ?? null, text, mentions, rawOutput: output.raw, gaps: describeGaps(mentions) },
       { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (error instanceof ExtractionError) return Response.json({ error: error.message, code: error.code }, { status: error.status });

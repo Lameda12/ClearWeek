@@ -17,7 +17,7 @@ vi.mock("@google/genai", () => ({ ThinkingLevel: { MINIMAL: "MINIMAL" }, GoogleG
 import { POST } from "../app/api/extract/route";
 import { extractionLimits, extractionMode } from "../lib/extraction/config";
 import { createLocalProvider, createMockProvider, loopbackUrl, sampleProvider, sampleText } from "../lib/extraction/providers";
-import { describeGaps, ExtractionError, normalizeInput, parseModelOutput, slots } from "../lib/extraction/schema";
+import { describeGaps, ExtractionError, groundPhrase, normalizeInput, parseModelOutput, parseModelOutputDetailed, slots } from "../lib/extraction/schema";
 
 const json = (value: unknown) => JSON.stringify(value);
 const mentions = (...items: [string, string][]) => json({ mentions: items.map(([slot, text]) => ({ slot, text })) });
@@ -65,7 +65,7 @@ describe("response validation (mocked output)", () => {
   });
   it("rejects fabricated text that is not in the source, including near matches", () => {
     expectCode(() => parseModelOutput(mentions(["event_date", "Saturday"]), source), "ungrounded");
-    expectCode(() => parseModelOutput(mentions(["event_date", "friday"]), source), "ungrounded"); // case differs
+    expectCode(() => parseModelOutput(mentions(["event_date", "Fridays"]), source), "ungrounded"); // not a case difference
     expectCode(() => parseModelOutput(mentions(["event_date", "Friday"], ["event_time", "3 PM"]), source), "ungrounded"); // one bad item rejects all
   });
   it("checks grounding only: a grounded but wrongly slotted phrase still passes", () => {
@@ -102,7 +102,14 @@ describe("prompt-injection text is only data", () => {
     expectCode(() => parseModelOutput(json({ mentions: [], action: "create_task", to: "Dana" }), injected), "invalid_schema");
   });
   it("rejects invented text the injected message asked for", () => {
-    expectCode(() => parseModelOutput(mentions(["event_name", "Task for Dana"]), injected), "ungrounded");
+    expectCode(() => parseModelOutput(mentions(["event_name", "Cancel Chloe's shift"]), injected), "ungrounded");
+  });
+  it("can still ground a phrase from the injected sentence itself, but only as a mention", () => {
+    // "task for Dana" really is in the message, so recovery accepts it. Grounding is not intent: it yields a
+    // suggested phrase for a person to review, never an action.
+    expect(parseModelOutputDetailed(mentions(["event_name", "Task for Dana"]), injected)).toEqual([
+      { slot: "event_name", text: "task for Dana", recoveredFrom: "Task for Dana" },
+    ]);
   });
   it("can only return phrases that are present, and returns nothing executable", () => {
     const result = parseModelOutput(mentions(["event_date", "Friday"], ["event_time", "2 PM"]), injected);
@@ -233,6 +240,14 @@ describe("POST /api/extract (mocked fetch, mocked database)", () => {
     expect(dbTouched).not.toHaveBeenCalled();
     expect(geminiBuilt).not.toHaveBeenCalled();
   });
+  it("returns recovered spelling, the recovery record and the raw output", async () => {
+    local();
+    const raw = mentions(["event_date", "friday"]);
+    fetchSpy.mockResolvedValue(Response.json({ raw }));
+    const body = await (await post({ text: "See you FRIDAY" })).json();
+    expect(body.mentions).toEqual([{ slot: "event_date", text: "FRIDAY", recoveredFrom: "friday" }]);
+    expect(body.rawOutput).toBe(raw);
+  });
   it("rejects fabricated text from the service with 502", async () => {
     local();
     fetchSpy.mockResolvedValue(Response.json({ raw: mentions(["event_date", "Monday"]) }));
@@ -293,5 +308,70 @@ describe("POST /api/extract (mocked fetch, mocked database)", () => {
     local(); vi.stubEnv("VERCEL", "1");
     expect((await post({ text: "Friday" })).status).toBe(404);
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("case-only grounding recovery", () => {
+  it("prefers an exact match, even when the phrase repeats", () => {
+    expect(groundPhrase("Friday and Friday", "Friday")).toEqual({ status: "exact", text: "Friday" });
+  });
+  it("recovers a single case-insensitive match and returns the source's own spelling", () => {
+    expect(groundPhrase("Can we do FRIDAY at 2 pm?", "Friday")).toEqual({ status: "recovered", text: "FRIDAY", from: "Friday" });
+    expect(groundPhrase("The 23rd or the 24th", "the 23rd or the 24th")).toEqual({ status: "recovered", text: "The 23rd or the 24th", from: "the 23rd or the 24th" });
+  });
+  it("rejects a case-insensitive match that occurs more than once", () => {
+    expect(groundPhrase("Friday or FRIDAY", "friday")).toEqual({ status: "ambiguous" });
+    expect(groundPhrase("see you friday, not Friday", "FRIDAY")).toEqual({ status: "ambiguous" });
+  });
+  it("counts overlapping matches as ambiguous", () => {
+    expect(groundPhrase("aaa", "AA")).toEqual({ status: "ambiguous" });
+  });
+  it("rejects a phrase that is absent", () => {
+    expect(groundPhrase("Can we do Friday?", "Saturday")).toEqual({ status: "absent" });
+    expect(groundPhrase("Can we do Friday?", "")).toEqual({ status: "absent" });
+  });
+  it("matches the phrase literally, not as a pattern", () => {
+    expect(groundPhrase("meet at 2 P.M. sharp", "2 p.m.")).toEqual({ status: "recovered", text: "2 P.M.", from: "2 p.m." });
+    expect(groundPhrase("meet at 2 PXM sharp", "2 p.m.")).toEqual({ status: "absent" }); // "." is not a wildcard
+    expect(groundPhrase("cost (est.) $5", "(EST.) $5")).toEqual({ status: "recovered", text: "(est.) $5", from: "(EST.) $5" });
+    expect(groundPhrase("a+b", "A+B")).toEqual({ status: "recovered", text: "a+b", from: "A+B" });
+  });
+  it("handles non-ASCII case differences without normalizing", () => {
+    expect(groundPhrase("Rendez-vous au CAFÉ à midi", "café")).toEqual({ status: "recovered", text: "CAFÉ", from: "café" });
+    expect(groundPhrase("встреча в ПЯТНИЦУ", "пятницу")).toEqual({ status: "recovered", text: "ПЯТНИЦУ", from: "пятницу" });
+    expect(groundPhrase("Zoë's practice", "ZOË'S")).toEqual({ status: "recovered", text: "Zoë's", from: "ZOË'S" });
+  });
+  it("never ignores accents, punctuation or Unicode composition", () => {
+    expect(groundPhrase("meet at the café", "cafe")).toEqual({ status: "absent" });
+    expect(groundPhrase("meet at the cafe", "café")).toEqual({ status: "absent" });
+    expect(groundPhrase("Zoe\u0301 said yes", "Zo\u00e9")).toEqual({ status: "absent" }); // decomposed vs composed é
+    expect(groundPhrase("2 PM, Friday", "2 PM Friday")).toEqual({ status: "absent" });
+    expect(groundPhrase("Friday at 2", "friday at two")).toEqual({ status: "absent" });
+    expect(groundPhrase("straße", "STRASSE")).toEqual({ status: "absent" }); // no full case folding
+  });
+  it("keeps offsets valid: a recovered phrase has the length of the phrase it replaces", () => {
+    const source = "Hello WORLD";
+    const result = groundPhrase(source, "world");
+    expect(result.status === "recovered" && source.indexOf(result.text)).toBe(6);
+    expect(result.status === "recovered" && result.text.length).toBe(5);
+  });
+  it("records recovery in the detailed result and keeps the plain result unchanged", () => {
+    const source = "The 23rd or the 24th, from 4 until 10.";
+    const raw = mentions(["event_date", "the 23rd or the 24th"], ["event_time", "4 until 10"]);
+    expect(parseModelOutputDetailed(raw, source)).toEqual([
+      { slot: "event_date", text: "The 23rd or the 24th", recoveredFrom: "the 23rd or the 24th" },
+      { slot: "event_time", text: "4 until 10" },
+    ]);
+    expect(parseModelOutput(raw, source)[0]).toEqual({ slot: "event_date", text: "The 23rd or the 24th" });
+  });
+  it("still rejects the whole response for an ambiguous or absent phrase", () => {
+    expectCode(() => parseModelOutputDetailed(mentions(["event_date", "friday"]), "Friday or FRIDAY"), "ambiguous_grounding");
+    expectCode(() => parseModelOutputDetailed(mentions(["event_date", "Friday"], ["event_time", "friday at 9"]), "Friday at noon"), "ungrounded");
+  });
+  it("merges a recovered phrase with an exact duplicate", () => {
+    expect(parseModelOutputDetailed(mentions(["event_date", "Friday"], ["event_date", "friday"]), "See you Friday")).toEqual([{ slot: "event_date", text: "Friday" }]);
+  });
+  it("does not repair a wrong slot: grounding and recovery say nothing about meaning", () => {
+    expect(parseModelOutputDetailed(mentions(["event_time", "friday"]), "See you Friday")[0]).toMatchObject({ slot: "event_time", text: "Friday" });
   });
 });
