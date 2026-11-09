@@ -1,4 +1,4 @@
-import { authorize, failure, httpError, readWorkspace } from "@/lib/private-server";
+import { authorize, failure, httpError, readWorkspace, saveAction } from "@/lib/private-server";
 import { validateAction } from "@/lib/workflow";
 
 export async function GET(request: Request) {
@@ -27,14 +27,7 @@ export async function POST(request: Request) {
     let action;
     try { action = validateAction(JSON.parse(Buffer.concat(chunks).toString("utf8"))); }
     catch { throw httpError(400, "Invalid approval or resolution."); }
-    const { error } = await session.db.from("clearweek_actions").upsert({
-      owner: session.owner,
-      conflict_id: "bus:shift",
-      kind: action.type,
-      proposal_version: action.type === "approve" ? action.proposal.version : null,
-      payload: action,
-    }, { onConflict: "owner,conflict_id,kind", ignoreDuplicates: true });
-    if (error) throw error;
+    await saveAction(session, action);
     return Response.json(await readWorkspace(session));
   } catch (error) { return failure(error); }
 }

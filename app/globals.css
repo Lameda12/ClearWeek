@@ -83,3 +83,4 @@ footer { min-height: 66px; display: flex; justify-content: space-between; align-
   .top-inner { min-height: 57px; gap: 15px; }
   nav { display: none; }
 }
+.saved-task small { display: block; margin-top: 6px; font-size: 12px; opacity: .85; }

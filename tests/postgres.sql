@@ -51,3 +51,16 @@ set request.jwt.claim.sub = '00000000-0000-0000-0000-000000000001';
 do $$ begin
   if (select count(*) from public.clearweek_actions) <> 1 then raise exception 'Owner cannot read'; end if;
 end $$;
+
+-- A plain insert of a second approval must fail with unique_violation (SQLSTATE 23505); the API maps this to HTTP 409.
+set role service_role;
+do $$
+begin
+  insert into public.clearweek_actions values (
+    '00000000-0000-0000-0000-000000000001', 'bus:shift', 'approve',
+    '10000000-0000-0000-0000-000000000003', '{}', now()
+  );
+  raise exception 'Second approval was accepted';
+exception when unique_violation then null;
+end
+$$;

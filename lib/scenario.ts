@@ -28,7 +28,14 @@ export function instant(value: string) {
   return Temporal.PlainDateTime.from(value).toZonedDateTime(zone, { disambiguation: "reject" }).toInstant();
 }
 
-export function findConflicts(schedule: readonly Event[]) {
+export const adjacentEvents = [
+  { id: "synthetic-class", title: "Skills review", start: `${date}T13:00`, end: `${date}T14:00` },
+  { id: "synthetic-practice", title: "Team practice", start: `${date}T14:00`, end: `${date}T15:00` },
+] as const;
+
+type Interval = Pick<Event, "id" | "start" | "end"> & { source?: EvidenceId };
+
+export function findConflicts<T extends Interval>(schedule: readonly T[]) {
   const intervals = schedule.map(event => {
     const start = instant(event.start).epochMilliseconds;
     const end = instant(event.end).epochMilliseconds;
@@ -38,11 +45,14 @@ export function findConflicts(schedule: readonly Event[]) {
   return intervals.flatMap((a, index) => intervals.slice(index + 1).flatMap(b => {
     const start = Math.max(a.start, b.start);
     const end = Math.min(a.end, b.end);
-    return start < end ? [{ id: [a.event.id, b.event.id].sort().join(":"), start, end, minutes: (end - start) / 60_000, sources: [a.event.source, b.event.source] }] : [];
+    return start < end ? [{ id: [a.event.id, b.event.id].sort().join(":"), start, end, minutes: (end - start) / 60_000, sources: [a.event.source, b.event.source].filter((source): source is EvidenceId => source !== undefined) }] : [];
   }));
 }
 
-const clock = new Intl.DateTimeFormat("en-CA", { timeZone: zone, hour: "numeric", minute: "2-digit", hour12: true });
-export const formatTime = (value: string | number) => clock.format(typeof value === "string" ? instant(value).epochMilliseconds : value).toUpperCase();
+// Formatted by hand so the output never depends on the runtime's ICU locale data.
+export function formatTime(value: string | number) {
+  const at = (typeof value === "string" ? instant(value) : Temporal.Instant.fromEpochMilliseconds(value)).toZonedDateTimeISO(zone);
+  return `${at.hour % 12 || 12}:${String(at.minute).padStart(2, "0")} ${at.hour < 12 ? "AM" : "PM"}`;
+}
 export const list_events = () => events;
 export const find_conflicts = () => findConflicts(list_events());

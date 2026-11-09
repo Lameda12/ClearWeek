@@ -2,7 +2,13 @@ import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { authorize, failure, httpError } from "@/lib/private-server";
 import { evidence, find_conflicts } from "@/lib/scenario";
 import { inputBytes, interpret, lifetimeAttempts, lifetimeCapMicros, model, outputTokens, requestSuggestion, reservationMicros, suggestionJsonSchema } from "@/lib/suggestion";
+import { sign } from "@/lib/provenance";
 import { draft } from "@/lib/workflow";
+
+const issue = (suggestion: Parameters<typeof draft>[1]) => {
+  const proposal = draft("gemini", suggestion);
+  return { ...proposal, proof: sign(proposal) };
+};
 
 export const maxDuration = 45;
 
@@ -24,7 +30,7 @@ export async function POST(request: Request) {
       p_max_requests: lifetimeAttempts, p_cap_micros: lifetimeCapMicros,
     });
     if (error) throw error;
-    if (data?.cached) return Response.json(draft("gemini", interpret(JSON.stringify(data.cached))));
+    if (data?.cached) return Response.json(issue(interpret(JSON.stringify(data.cached))));
 
     const client = new GoogleGenAI({ apiKey: GEMINI_API_KEY, httpOptions: { timeout: 12_000, retryOptions: { attempts: 1 } } });
     let usage: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number } | undefined;
@@ -40,7 +46,7 @@ export async function POST(request: Request) {
       });
       usage = response.usageMetadata;
       return response.text ?? "";
-    });
+    }, process.env.CLEARWEEK_SMOKE_SINGLE_ATTEMPT !== "true");
     const input = usage?.promptTokenCount ?? null;
     const output = usage?.candidatesTokenCount === undefined ? null : usage.candidatesTokenCount + (usage.thoughtsTokenCount ?? 0);
     const { error: saveError } = await db.from("clearweek_ai_requests").update({
@@ -48,6 +54,6 @@ export async function POST(request: Request) {
       estimated_micros: input === null || output === null ? null : Math.ceil(input * 0.25 + output * 1.5),
     }).eq("id", id);
     if (saveError) throw saveError;
-    return Response.json(draft("gemini", suggestion));
+    return Response.json(issue(suggestion));
   } catch (error) { return failure(error); }
 }

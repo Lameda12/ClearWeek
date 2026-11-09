@@ -6,7 +6,7 @@ import { createClient, type Session } from "@supabase/supabase-js";
 import { ArrowRight, CalendarDays, ChevronDown, CircleCheck, Clock3, FileText, Flag, History, LockKeyhole, Waves } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { evidence, find_conflicts, formatTime, list_events } from "@/lib/scenario";
-import { applyAction, draft, emptyState, type Action, type Proposal, type Workspace } from "@/lib/workflow";
+import { applyAction, draft, editProposal, emptyState, normalizeWorkspace, provenanceLabel, type Action, type Proposal, type Workspace } from "@/lib/workflow";
 
 const [conflict] = find_conflicts();
 const sourceIds = [...conflict.sources, "swap", "availability"] as const;
@@ -19,7 +19,7 @@ async function api<T>(path: string, token: string, options?: RequestInit): Promi
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
   });
   const body = await response.json();
-  if (!response.ok) throw new Error(body.error ?? "The request failed.");
+  if (!response.ok) throw Object.assign(new Error(body.error ?? "The request failed."), { status: response.status });
   return body;
 }
 
@@ -50,8 +50,8 @@ export function WorkspaceView({ privateMode, supabaseUrl, publishableKey }: Prop
     async function load() {
       if (privateMode && !token) return;
       try {
-        const saved = privateMode ? await api<Workspace>("/api/workspace", token) : JSON.parse(localStorage.getItem(storageKey) ?? "null");
-        if (active) { setState(saved ?? emptyState); setReady(true); }
+        const saved = privateMode ? await api<unknown>("/api/workspace", token) : JSON.parse(localStorage.getItem(storageKey) ?? "null");
+        if (active) { setState(normalizeWorkspace(saved)); setReady(true); }
       } catch {
         if (active) setError("The saved workspace could not be loaded.");
       }
@@ -78,22 +78,31 @@ export function WorkspaceView({ privateMode, supabaseUrl, publishableKey }: Prop
 
   async function save(action: Action) {
     await run(async () => {
+      const had = state.tasks.length > 0;
+      const read = () => normalizeWorkspace(JSON.parse(localStorage.getItem(storageKey) ?? "null"));
       let saved: Workspace;
-      if (privateMode) {
-        saved = await api("/api/workspace", token, { method: "POST", body: JSON.stringify(action) });
-      } else {
-        const persist = () => {
-          const previous = JSON.parse(localStorage.getItem(storageKey) ?? "null") ?? emptyState;
-          const next = applyAction(previous, action);
-          localStorage.setItem(storageKey, JSON.stringify(next));
-          return next;
-        };
-        saved = navigator.locks ? await navigator.locks.request(storageKey, persist) : persist();
+      try {
+        if (privateMode) {
+          saved = normalizeWorkspace(await api<unknown>("/api/workspace", token, { method: "POST", body: JSON.stringify(action) }));
+        } else {
+          const persist = () => {
+            const next = applyAction(read(), action);
+            localStorage.setItem(storageKey, JSON.stringify(next));
+            return next;
+          };
+          saved = navigator.locks ? await navigator.locks.request(storageKey, persist) : persist();
+        }
+      } catch (failure) {
+        if ((failure as { status?: number }).status === 409) {
+          // Show what is actually saved; the existing record is unchanged.
+          setState(privateMode ? normalizeWorkspace(await api<unknown>("/api/workspace", token)) : read());
+        }
+        throw failure;
       }
       setState(saved);
       if (action.type === "approve") {
         setProposal(null); setReviewedProposal(null);
-        setNotice(saved.tasks[0]?.proposal.version === action.proposal.version ? "Task created" : "Follow-up task already exists");
+        setNotice(had ? "This follow-up was already saved" : "Task created");
       } else { setNotice("Resolution recorded"); }
     });
   }
@@ -130,6 +139,7 @@ export function WorkspaceView({ privateMode, supabaseUrl, publishableKey }: Prop
         <div className="eyebrow"><CalendarDays size={15} aria-hidden="true" /> Historical sample</div>
         <h1>Chloe’s Friday schedule</h1>
         <p>Friday, October 23, 2026 <span className="date-dot">·</span> America/Halifax</p>
+        <Link className="task-link" href="/adjacent">Try the adjacent example <ArrowRight size={15} aria-hidden="true" /></Link>
       </div>
 
       {privateMode && !session && <section className="panel sign-in" aria-labelledby="sign-in-title">
@@ -182,9 +192,9 @@ export function WorkspaceView({ privateMode, supabaseUrl, publishableKey }: Prop
             {!proposal && !task && !resolved && <Button disabled={!ready || busy} onClick={prepare}>{busy ? "Working…" : "Prepare draft"} <ArrowRight size={16} aria-hidden="true" /></Button>}
             {proposal && <div className="draft">
               <label htmlFor="draft-message">Draft message</label>
-              <span className="draft-origin">{proposal.origin === "demo" ? "Offline demo draft" : "Gemini-assisted draft"}</span>
+              <span className="draft-origin">{provenanceLabel(proposal, true)}</span>
               <textarea id="draft-message" maxLength={1600} value={proposal.message} disabled={busy}
-                onChange={event => { setReviewedProposal(null); setNotice(""); setProposal({ ...proposal, version: crypto.randomUUID(), message: event.target.value }); }} />
+                onChange={event => { setReviewedProposal(null); setNotice(""); setProposal(editProposal(proposal, event.target.value)); }} />
               <p>{reviewed ? "Draft reviewed. Approve to save a task in ClearWeek." : "Review this version before approving. ClearWeek saves the draft with the task."}</p>
               <div className="buttons">
                 {!reviewed && <Button variant="outline" disabled={busy || !proposal.message.trim()} onClick={() => setReviewedProposal(proposal)}>Review draft</Button>}
@@ -202,7 +212,7 @@ export function WorkspaceView({ privateMode, supabaseUrl, publishableKey }: Prop
       <div className="lower-grid">
         <section className="panel" id="follow-up" aria-labelledby="follow-title">
           <div className="section-head"><div className="section-icon"><CircleCheck size={19} aria-hidden="true" /></div><h2 id="follow-title">Follow-up tasks</h2></div>
-          {task ? <div className="saved-task"><h3>Ask Dana about shift coverage</h3><p>{task.proposal.message}</p></div> : <p>No follow-up tasks yet.</p>}
+          {task ? <div className="saved-task"><h3>Ask Dana about shift coverage</h3><p>{task.proposal.message}</p><small>{provenanceLabel(task.proposal, task.verified)}</small></div> : <p>No follow-up tasks yet.</p>}
         </section>
         <section className="panel" aria-labelledby="history-title">
           <div className="section-head"><div className="section-icon"><History size={19} aria-hidden="true" /></div><h2 id="history-title">Action history</h2></div>

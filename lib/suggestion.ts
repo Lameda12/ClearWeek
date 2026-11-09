@@ -17,14 +17,14 @@ export type Suggestion = z.infer<typeof schema>;
 export const suggestionJsonSchema = z.toJSONSchema(schema);
 export const interpret = (text: string) => schema.parse(JSON.parse(text));
 
-export async function requestSuggestion(reserve: () => Promise<boolean>, generate: () => Promise<string>) {
+export async function requestSuggestion(reserve: () => Promise<boolean>, generate: () => Promise<string>, allowRetry = true) {
   if (!await reserve()) throw Object.assign(new Error("Draft limit reached. Try again later."), { status: 429 });
   let output: string;
   try {
     output = await generate();
   } catch (error) {
     const status = Number((error as { status?: unknown })?.status);
-    if (![408, 500, 502, 503, 504].includes(status)) throw error;
+    if (!allowRetry || ![408, 500, 502, 503, 504].includes(status)) throw error;
     output = await generate();
   }
   return interpret(output);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { events, findConflicts, instant, evidence } from "../lib/scenario";
+import { adjacentEvents, events, findConflicts, instant, evidence } from "../lib/scenario";
 import { applyAction, draft, emptyState, reviewSchema } from "../lib/workflow";
 import { interpret, requestSuggestion, reservationMicros } from "../lib/suggestion";
 
@@ -72,4 +72,19 @@ describe("model and budget", () => {
     expect(reservationMicros).toBeGreaterThan(0);
     expect(reservationMicros * 20).toBeLessThan(4_000_000);
   });
+});
+
+it("finds no time overlap in the two synthetic commitments with a shared boundary", () => {
+  expect(adjacentEvents).toHaveLength(2);
+  expect(adjacentEvents[0].end).toBe(adjacentEvents[1].start);
+  expect(findConflicts(adjacentEvents)).toEqual([]);
+});
+
+it("makes at most one provider attempt in smoke mode", async () => {
+  let calls = 0;
+  await expect(requestSuggestion(async () => true, async () => {
+    calls++;
+    throw { status: 503 };
+  }, false)).rejects.toMatchObject({ status: 503 });
+  expect(calls).toBe(1);
 });

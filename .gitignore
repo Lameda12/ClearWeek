@@ -10,3 +10,4 @@ test-results/
 /*.docx
 /*.pdf
 /Table of Contents.html
+.vercel

@@ -56,3 +56,14 @@ test("renders the desktop workspace in two columns", async ({ browser }, testInf
   await page.screenshot({ path: testInfo.outputPath("desktop.png"), fullPage: true, caret: "initial" });
   await page.close();
 });
+
+test("shows a separate synthetic example with exactly adjacent commitments", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Try the adjacent example" }).click();
+  await expect(page.getByText("Synthetic example", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "No time overlap" })).toBeVisible();
+  await expect(page.getByText("Travel time is not evaluated.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Prepare draft" })).toHaveCount(0);
+  await page.getByRole("link", { name: "Back to Chloe’s schedule" }).click();
+  await expect(page.getByText("2 hours overlap")).toBeVisible();
+});
