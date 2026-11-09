@@ -1,7 +1,7 @@
 """Qwen3-1.7B + PEFT LoRA adapter on Apple Silicon (MPS), loaded exactly as the training notebook trained it.
 
-STATUS: written from the notebook (ClearWeek_Calendar_Extraction_Colab_fixed.ipynb) and NOT yet run against real
-weights. No trained artifact existed when this was written. Treat the first real load as a test, not a deployment.
+STATUS: written from the notebook (ClearWeek_Calendar_Extraction_Colab_fixed.ipynb). Run on 2026-11-09 against the
+Colab artifact on Apple MPS: 60/60 test outputs matched Colab's byte for byte. See docs/extraction.md.
 
 Faithfulness rules taken from the notebook:
   * tokenizer: AutoTokenizer from the BASE model at the recorded revision; pad = eos if missing; right padding

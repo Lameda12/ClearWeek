@@ -1,6 +1,6 @@
 # Schedule-text extraction (preparation)
 
-**Status, November 9, 2026:** the interface, validation, review UI, mock/sample providers and a local service skeleton exist. **No Qwen model has been trained, downloaded, loaded or run here.** Every extraction test uses mocked output or a stub that returns a fixed string. Nothing below is a claim about model quality. Gemini draft generation is unchanged and separate; extraction never calls Gemini or any hosted provider.
+**Status, November 9, 2026:** the interface, validation, review UI, mock/sample providers and the local service exist. The Colab-trained adapter has been loaded locally and run (see "Real-artifact results"), but **extraction is still off by default, not deployed and not adopted**. The automated app tests below still use mocked output or a stub; only the `local-extractor` runs in "Real-artifact results" used real weights. Gemini draft generation is unchanged and separate; extraction never calls Gemini or any hosted provider.
 
 ## What it does and does not do
 
@@ -49,7 +49,7 @@ The route reads the service address from server configuration only, refuses anyt
 
 Found on this Mac: `uv`, `llama-server` and `llama-cli` (llama.cpp, Homebrew), `ollama`, Python 3.14. Not installed: PyTorch, transformers, peft, mlx-lm. Nothing was installed.
 
-**Recommended first: `hf-peft`** (`local-extractor/hf_peft_backend.py`). It loads the base model at the recorded revision and the adapter with `peft`, uses the notebook's tokenizer handling, template and decoding, and needs no conversion, so it is the most faithful to what was evaluated. A 1.7B model in bf16 is roughly 3.4 GB, comfortable in 24 GB (an estimate, not measured). Use Python 3.12 via `uv`; PyTorch support for the system Python 3.14 is unchecked. **This backend is written from the notebook and has never run against real weights.**
+**Recommended first: `hf-peft`** (`local-extractor/hf_peft_backend.py`). It loads the base model at the recorded revision and the adapter with `peft`, uses the notebook's tokenizer handling, template and decoding, and needs no conversion, so it is the most faithful to what was evaluated. A 1.7B model in bf16 is roughly 3.4 GB, comfortable in 24 GB (an estimate, not measured). Use Python 3.12 via `uv`; PyTorch support for the system Python 3.14 is unchecked. The backend loaded the real artifact and reproduced Colab's outputs (below).
 
 Alternatives, not chosen yet: **llama.cpp** (already installed; converting a PEFT adapter to GGUF is a documented path but I have not tried it for this adapter, and a quantized base would differ from training, so it needs the regression check below); **MLX** (`mlx-lm` not installed, PEFT-to-MLX adapter conversion unverified); **Ollama** (adapter import for this architecture unverified). Faster runtimes are worth trying only after the faithful path works, and only with regression checks.
 
@@ -84,7 +84,7 @@ It reports how often local output is byte-identical to Colab's, plus validity, e
 | `local-extractor/test_server.py` (8 tests) | Real HTTP to the service with the **stub** backend |
 | Cross-process smoke test (stub service ↔ `next start`) | Real HTTP between processes. The stub returns a fixed string. |
 
-**Not tested:** any real model output, the `hf-peft` backend, adapter loading, MPS performance, memory use, accuracy on ClearWeek text.
+**Still untested:** end-to-end use of the real model through the Next.js route and UI, the other runtimes (llama.cpp, MLX, Ollama), behaviour under load, and accuracy on a reviewed ClearWeek-specific test set (none exists).
 
 ## Handoff checklist: what I need when Colab finishes
 
@@ -99,3 +99,24 @@ It reports how often local output is byte-identical to Colab's, plus validity, e
 9. **Your decision on conversion:** stay on `hf-peft`, or try llama.cpp/MLX afterwards.
 
 Only after these: I verify the repo and revision, load base and adapter together with the matching prompt, run `regress.py`, read the evaluation before recommending adoption, and then say whether live integration is justified. The CC BY-SA 4.0 attribution applies if the adapted dataset files are ever redistributed.
+
+## Real-artifact results (November 9, 2026)
+
+Artifact: `ClearWeek_calendar_adapter.zip` from the fixed notebook (NVIDIA L4, bf16, `4bit: false`), unzipped outside the repo (the zip and that folder are git-ignored). Base `Qwen/Qwen3-1.7B` at `70d244cc86ccca08cf5af4e1e306ecf908b1ad5e`. Weights are `adapter_model.safetensors` (392 F32 tensors); the adapter also contains `training_args.bin`, a pickle, which was **not** loaded. `system-prompt.txt` SHA-256 matches the reconstructed `a3de2986…2903`. Training used `transformers 4.57.1`, `peft 0.17.1`, `accelerate 1.10.1`; the local venv matches those and uses `torch 2.15.0` (Colab: CUDA build).
+
+**Colab evaluation** (`comparison.json`; custom dialogue-disjoint SGD split, not ClearWeek acceptance; test n=558 with 188 positive, dev n=535 with 198 positive):
+
+| | base dev | adapter dev | base test | adapter test |
+| --- | --- | --- | --- | --- |
+| exact_set_match_positive | 0.162 | 0.965 | 0.133 | 0.973 |
+| span_micro_f1 | 0.357 | 0.968 | 0.333 | 0.987 |
+| exact_set_match (all) | 0.688 | 0.983 | 0.703 | 0.991 |
+| json_schema_valid_rate | 0.983 | 1.000 | 0.988 | 1.000 |
+| ungrounded_text_example_rate | 0.0037 | 0.0019 | 0.0072 | 0.0000 |
+| median seconds (L4) | 0.26 | 0.43 | 0.28 | 0.43 |
+
+Most examples are empty, so plain exact match flatters the base model. Adapter failures (5 on test, 9 on dev) are mostly span-boundary and annotation-granularity differences, location versus name confusion, a missed spelled-out time ("one pm"), and one case-changed copy ("twelve" for "Twelve") that the grounding check correctly rejects.
+
+**Local run** (`local-extractor` `hf-peft` backend, Apple Silicon, MPS, bf16): 60 test examples (30 positive, 30 empty): **all 60 outputs byte-identical to Colab's**, 100% valid JSON, 0 ungrounded. Latency after warm-up: median 0.57 s, mean 0.70 s, p90 1.37 s, max 2.26 s. Memory: about 3.3 GiB allocated on the GPU (3.8 GiB driver) and about 1.9 GiB peak process RSS. First load took 193 s including the one-time model download.
+
+**Realistic ClearWeek messages (10, untested before today; the training data does not cover them):** works on plain shift text with a location and on an empty "thanks"; ignores an injected instruction (one sample, not a robustness test). Fails or misleads on: range phrases such as "4 to 10" or "4 PM to 10 PM" filed as an event *start* time; "Saturday morning" as a location; "after 6" as an event time rather than availability; a date and time merged ("2 PM Friday"); "6 PM" (a return time) as a start time; a missed "at 9" and "8:35"; "I can't do Friday" ignored; no notion of a declined swap; no event association for two events; and a case-changed copy ("the 23rd or the 24th" for "The 23rd or the 24th") that the app would reject whole. Relative phrases ("tomorrow", "next Tuesday") are kept as written, which is the intended behaviour.
