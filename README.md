@@ -27,6 +27,10 @@ Full details, dated history and the not-verified list are in the [verification r
 - **Hosted, November 7, 2026 (redacted [evidence](docs/hosted-evidence.md)):** one fresh Gemini response with recorded usage, and one approval that survived reload. That approval predates provenance checks, so it loads as *legacy, not verified*. No new provider call was made since.
 - **Not verified:** a real second signed-in hosted account (the mocked non-owner check passes), hosted row-level security with a second user's token, and any public deployment.
 
+## Research note: extraction experiment
+
+A small fine-tuned model scored well on a custom split of public calendar dialogues (adapter test: positive-only exact match 0.973, span F1 0.987, n=558 with 188 positive; base model 0.133 and 0.333) and reproduced locally on a Mac. It was **not reliable on initial ClearWeek-style messages** (wrong slots, omissions, no event structure), and the app route and UI have **not** been tested with the real model. The experiment is not part of the app and lives on a separate branch with the flag off by default. Details, numbers and limits: [research note](docs/research-note.md). Dataset: Google Schema-Guided Dialogue (CC BY-SA 4.0). Model: Qwen3-1.7B (Apache 2.0).
+
 ## Run the offline demo
 
 Use Node.js 22 or later.
