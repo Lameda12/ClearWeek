@@ -14,3 +14,22 @@ Screenshot identifiers refer to the embedded files under `word/media/` in `Chloe
 | overlap | Derived from bus and shift | The source intervals overlap from 4–6 PM. | America/Halifax is the requested scenario zone, consistent with the Halifax lock-screen context. |
 
 The beta meeting deck (`Side Quest Beta Tester Meeting.pdf`, PDF pages 5–7 and 10–12) describes four modules, a 9.5–14.5 hour suggested AI-agent workload, privacy and guardrails, and free tooling. The local Brightspace export (`Table of Contents.html`) lists persona files. Detailed module instructions, the rubric, and an accepted pitch or work plan were unavailable. Submission compliance has not been assessed.
+
+## Assignment requirements: known and missing
+
+Known from short assignment summaries (November 9, 2026), not from the full module pages:
+
+- **Pitch:** about one page covering the problem, affected user, evidence and proposed build.
+- **Work plan:** milestones, timeline, weekly hours and tools. The summary says it is only checked for submission.
+- **Project:** a link to the build, a short explanation of how it solves the pitched problem, deviations from the plan with reasons, and AI prompts with how their outputs were used.
+- **Showcase:** an employer-facing piece (for example a GitHub README, LinkedIn post or resume entry) plus a short demo.
+- **Feedback Dropbox:** actual typos, broken links or unclear steps, with location and an optional screenshot.
+- **Program dates:** the November 5 meeting deck lists November 27, 2026 as "Projects close." The exact Brightspace submission deadline and time are not confirmed.
+
+Still unavailable: the full module instructions and any detailed rubric. Compliance with them is unassessed, and nothing here should be read as a rubric result.
+
+## V1.1 rubric check
+
+The local Side Quest ZIP contains the same four personas and the pitch table of contents. The separately downloaded A1, A2, A3 and M1 rubric documents cover interface design, usability heuristics, think-aloud studies or interface milestones. They do not establish the Side Quest AI-agent grading criteria. The applicable Brightspace rubric remains unavailable.
+
+The rest of this file's V1.1 statement about the rubric is superseded by the section above for the assignment summaries, and still stands for the detailed rubric, which remains unavailable.
