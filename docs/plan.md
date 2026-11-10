@@ -14,15 +14,6 @@ Risks include ambiguous screenshot details, incorrect dates, unsupported model c
 
 Done means the evidence-backed sample works through approval and reload on mobile, checks are recorded, and live credentials or deployment gaps are explicit.
 
-## Participant work log
-
-| Date | Module | What I did | Time spent | Evidence or link |
-| --- | --- | --- | --- | --- |
-| | Pitch | | | |
-| | Work plan | | | |
-| | Build | | | |
-| | Showcase | | | |
-
 ## V1.1
 
 - Preserve Chloe's workflow. Add a separate synthetic example that uses the same overlap calculation.
