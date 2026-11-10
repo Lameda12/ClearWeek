@@ -12,7 +12,7 @@ I updated this plan to reflect current progress. The week numbers and hours belo
 | Week 3 | 3 hours | Verify the hosted workflow, production build, and boundary cases. | Live Gemini and hosted persistence passed on Nov 7. The adjacent example, local SQL checks, and production browser tests passed. A Nov 9 review added provenance and conflict fixes with tests. Real second-account hosted checks remain unrun. |
 | Week 4 | 2 hours | Prepare the README and record the demo. Review submission instructions and check links. | README and recording script drafted. Repository and live demo are published (see the project submission). Recording and full module review remain open. |
 
-**Total planned effort:** 12.5 hours. **Actual logged time:** no entries available.
+**Total planned effort:** 12.5 hours. Actual hours are recorded separately where the program asks for them, and none are claimed here.
 
 I used Next.js, React, and TypeScript for the app, Zod for validation, and Gemini for constrained draft choices. Supabase handles private sign-in and persistence. I used Vitest, Playwright, and disposable PostgreSQL for verification, with Git for version control.
 
