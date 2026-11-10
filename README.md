@@ -2,6 +2,14 @@
 
 I’m Alamedin Sabit. I built ClearWeek for SideQuest’s Persona-driven AI agent stream. ClearWeek is an AI-assisted scheduling workflow: deterministic code finds the conflict, Gemini (private mode only) makes a constrained choice about how to frame a draft, and the server assembles every factual sentence from source-backed wording. It does not plan autonomously, send messages, or change shifts. It helps Chloe Nguyen, a nursing student, varsity swimmer, and part-time cashier, take a practical next step when her team travel and work shift collide.
 
+## Live demo and verification
+
+- **Live offline demo:** <https://clearweek-woad.vercel.app> (offline mode only, sample data, no AI calls, no secrets).
+- **Verified:** November 7, hosted: one fresh Gemini response with recorded token usage, and one approved task that survived reload in hosted Supabase. November 9, local: lint, type checking, 28 unit tests, the four original browser tests plus one new conflict test, the production build, and disposable PostgreSQL checks passed.
+- **Not verified:** a real second hosted account and hosted row-level security with a second user's token. Only the offline demo is publicly deployed; private mode is not.
+
+Details: [verification record](docs/test-results.md) · [hosted evidence](docs/hosted-evidence.md).
+
 ## The scheduling problem
 
 On Friday, October 23, 2026 in Halifax, Chloe’s team bus was scheduled from 2 to 6 PM and her Harbour Foods shift from 4 to 10 PM. The persona’s calendar widget shows both blocks (`image17.png`). The shift detail shows the work calendar is read-only (`image10.png`), and the notification says her Friday swap was declined (`image2.png`). [Source evidence](docs/evidence.md)
