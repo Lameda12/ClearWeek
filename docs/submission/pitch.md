@@ -28,6 +28,10 @@ I plan to build a web app, not a chatbot, in TypeScript with Next.js and React. 
 
 In the signed-in version, Gemini will make one narrow choice. It will pick one of two ways to word the ask (ask for coverage, or ask for guidance) and up to two verified details to include. The server will check that choice. The server will write every sentence about times, places, and the swap. Gemini will not send anything, will not use tools, and will not change any shift. ClearWeek is an AI-assisted workflow, not an AI that plans on its own.
 
+## How I will show it works
+
+I will run the open demo on Chloe's Friday case. I will show the 4 to 6 PM overlap and where each fact came from. I will show the draft to Dana, then approve it and show the follow-up task, which stays open. Vitest tests will check the overlap math and the approval rules. Playwright tests will click through the open demo in a real browser.
+
 ## Where I draw the line
 
-ClearWeek will use sample data only. It will have no live calendar connection, will not send messages, and will have no access to the employer's scheduling system. Chloe stays responsible for contacting Dana and confirming what happens.
+ClearWeek will use sample data only. It will have no live calendar connection, will not send messages, and will have no access to the employer's scheduling system. Chloe stays responsible for contacting Dana and confirming what happens. A second declined swap, for Saturday, October 24, from 9 AM to 3 PM, is a later case and is not in scope now.
