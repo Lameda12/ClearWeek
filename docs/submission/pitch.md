@@ -18,7 +18,7 @@ I plan to build ClearWeek for Chloe Nguyen, a nursing student, varsity swimmer, 
 
 ## What ClearWeek will do
 
-ClearWeek will be a web page. Chloe opens it and sees her Friday as a list: swim practice, class, the bus, and the shift. Next to the list she sees one flagged conflict: "2 hours overlap, 4 to 6 PM". She can open a list of evidence to check where each fact came from, such as the declined swap notice. She then clicks "Prepare draft" and gets a short message asking Dana whether approved coverage is possible. She can edit the message, review the final version, and approve it. Approving saves a follow-up task in ClearWeek. The task stays open and the conflict stays open until Chloe writes down what Dana confirmed.
+ClearWeek will be a web page. Chloe opens it and sees her Friday as a list: swim practice, class, the bus, and the shift. Next to the list she sees one flagged conflict: "2 hours overlap, 4 to 6 PM". She can open a list of evidence to check where each fact came from, such as the declined swap notice. She then clicks "Prepare draft" and gets a short message asking Dana whether approved coverage is possible. She can edit the message, review the final version, and approve it. Approving saves a follow-up task in ClearWeek. The conflict stays open until Chloe writes down what Dana confirmed.
 
 ## What it is built with
 
@@ -30,7 +30,7 @@ In the signed-in version, Gemini will make one narrow choice. It will pick one o
 
 ## How I will show it works
 
-I will run the open demo on Chloe's Friday case. I will show the 4 to 6 PM overlap and where each fact came from. I will show the draft to Dana, then approve it and show the follow-up task, which stays open. Vitest tests will check the overlap math and the approval rules. Playwright tests will click through the open demo in a real browser.
+I will run the open demo on Chloe's Friday case. I will show the 4 to 6 PM overlap and where each fact came from. I will show the draft to Dana, then approve it, show the follow-up task, and show that the conflict stays open. Vitest tests will check the overlap math and the approval rules. Playwright tests will click through the open demo in a real browser.
 
 ## Where I draw the line
 
