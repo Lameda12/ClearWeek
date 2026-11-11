@@ -22,7 +22,7 @@ Dates come from git times (Halifax time), except Nov 8, which I confirmed myself
 | After the rewrite | Build | Run the online checks with a real second account. | Not started |
 | After the rewrite | Showcase | Read the full SideQuest instructions and check all links. | Not started |
 | Before the showcase deadline | Showcase | Record the 2 minute demo (see Demo plan). | Not started |
-| Before the showcase deadline | Showcase | Submit. Projects close Fri Nov 27, 2026 (kickoff meeting). | Not started |
+| Before the showcase deadline | Showcase | Submit. Module deadline Sat Nov 14, 2026, 11:59 PM (my Brightspace deadline). Projects close Fri Nov 27, 2026 (kickoff meeting). | Not started |
 
 ## Stack
 
