@@ -45,7 +45,7 @@ describe("draft edits and provenance", () => {
     const edited = editProposal(first, "Hi Dana, can we review coverage options?");
     expect(edited).toMatchObject({ source: "demo", edited: true, base: { version: first.version, message: first.message } });
     expect(edited.version).not.toBe(first.version);
-    expect(provenanceLabel(edited, false)).toBe("Edited by you · based on the offline demo draft");
+    expect(provenanceLabel(edited, false)).toBe("Edited by you · based on the open demo draft");
     expect(proposalSchema.safeParse(edited).success).toBe(true);
   });
   it("restores the original draft when the text is changed back", () => {
@@ -73,7 +73,7 @@ describe("draft edits and provenance", () => {
     expect(stored.type === "approve" && stored.proposal).toMatchObject({ source: "gemini", edited: false, legacy: true });
     const state = normalizeWorkspace({ tasks: [{ proposal: legacy, createdAt: "2026-11-07T20:00:00Z" }], resolution: null });
     expect(state.tasks[0].verified).toBe(false);
-    expect(provenanceLabel(state.tasks[0].proposal, state.tasks[0].verified)).toContain("not verified");
+    expect(provenanceLabel(state.tasks[0].proposal, state.tasks[0].verified)).toContain("could not be checked");
     expect(normalizeWorkspace(null)).toEqual(emptyState);
   });
 });

@@ -111,7 +111,7 @@ export function WorkspaceView({ privateMode, supabaseUrl, publishableKey }: Prop
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
     void run(async () => {
-      if (!auth) throw new Error("Private workspace setup is incomplete.");
+      if (!auth) throw new Error("Signed-in workspace setup is incomplete.");
       const result = await auth.auth.signInWithPassword({ email: String(fields.get("email")), password: String(fields.get("password")) });
       if (result.error) throw new Error("Sign-in failed. Check your email and password.");
     });
@@ -130,13 +130,13 @@ export function WorkspaceView({ privateMode, supabaseUrl, publishableKey }: Prop
       <div className="top-inner">
         <Link className="brand" href="/"><span><Waves size={22} aria-hidden="true" /></span>ClearWeek</Link>
         <nav aria-label="Workspace"><a href="#schedule">Schedule</a><a href="#follow-up">Follow-up</a></nav>
-        <span className="mode"><i />{privateMode ? "Private workspace" : "Offline demo"}</span>
+        <span className="mode"><i />{privateMode ? "Signed-in workspace" : "Open demo"}</span>
       </div>
     </header>
 
     <main id="main" className="shell">
       <div className="intro">
-        <div className="eyebrow"><CalendarDays size={15} aria-hidden="true" /> Historical sample</div>
+        <div className="eyebrow"><CalendarDays size={15} aria-hidden="true" /> Sample data</div>
         <h1>Chloe’s Friday schedule</h1>
         <p>Friday, October 23, 2026 <span className="date-dot">·</span> America/Halifax</p>
         <Link className="task-link" href="/adjacent">Try the adjacent example <ArrowRight size={15} aria-hidden="true" /></Link>
@@ -149,7 +149,7 @@ export function WorkspaceView({ privateMode, supabaseUrl, publishableKey }: Prop
           <label>Password<input type="password" name="password" autoComplete="current-password" required /></label>
           <Button disabled={busy || !auth}>Sign in</Button>
         </form>
-        {!auth && <p>Private workspace setup is incomplete.</p>}
+        {!auth && <p>Signed-in workspace setup is incomplete.</p>}
       </section>}
 
       <div className="main-grid">
@@ -159,7 +159,7 @@ export function WorkspaceView({ privateMode, supabaseUrl, publishableKey }: Prop
             {listEvents().map(event => <li key={event.id} className={`event ${event.category.toLowerCase()}`}>
               <div className="event-time">{formatTime(event.start)} <span>–</span> {formatTime(event.end)}</div>
               <div className="event-main"><h3>{event.title}</h3><span className="category">{event.category}</span></div>
-              {event.readOnly && <div className="subscribed"><LockKeyhole size={12} aria-hidden="true" /> Subscribed calendar · read-only</div>}
+              {event.readOnly && <div className="subscribed"><LockKeyhole size={12} aria-hidden="true" /> Work calendar · view only, cannot be edited here</div>}
             </li>)}
           </ol>
         </section>
@@ -224,7 +224,7 @@ export function WorkspaceView({ privateMode, supabaseUrl, publishableKey }: Prop
         const result = await auth?.auth.signOut();
         if (result?.error) throw new Error("Sign-out failed. Try again.");
         setReady(false); setState(emptyState); setProposal(null); setReviewedProposal(null); setResolution("");
-      })}>Sign out</Button> : <span>{privateMode ? "Historical sample" : "Demo tasks are saved in this browser"}</span>}</footer>
+      })}>Sign out</Button> : <span>{privateMode ? "Sample data" : "Demo tasks are saved in this browser"}</span>}</footer>
     </main>
   </>;
 }

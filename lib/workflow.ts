@@ -94,14 +94,14 @@ export function editProposal(current: Proposal, text: string): Proposal {
 }
 
 export function provenanceLabel(p: StoredProposal, verified: boolean) {
-  const origin = p.source === "gemini" ? "Gemini-assisted" : "offline demo";
-  if (p.legacy) return `Saved before provenance checks · recorded as ${origin}${p.source === "gemini" ? ", not verified" : ""}`;
+  const origin = p.source === "gemini" ? "Gemini-assisted" : "open demo";
+  if (p.legacy) return `Saved before draft checks existed · recorded as ${origin}${p.source === "gemini" ? ", could not be checked" : ""}`;
   if (p.edited) {
-    if (p.source === "demo") return "Edited by you · based on the offline demo draft";
-    return verified ? "Edited by you · based on a server-verified AI suggestion" : "Edited by you · AI suggestion not verified";
+    if (p.source === "demo") return "Edited by you · based on the open demo draft";
+    return verified ? "Edited by you · based on an AI suggestion checked by the server" : "Edited by you · AI suggestion could not be checked";
   }
-  if (p.source === "demo") return "Offline demo draft";
-  return verified ? "Gemini-assisted draft · server-verified" : "Recorded as Gemini-assisted draft · not verified";
+  if (p.source === "demo") return "Open demo draft";
+  return verified ? "Gemini-assisted draft · checked by the server" : "Recorded as Gemini-assisted draft · could not be checked";
 }
 
 const same = (a: Proposal, b: Proposal) =>

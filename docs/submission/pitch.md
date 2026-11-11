@@ -2,18 +2,32 @@
 
 **Alamedin Sabit** · SideQuest · Persona-driven AI agent
 
+*This is the pitch as written before the build. It has been updated only for clarity: plainer words, evidence described in words, and future tense.*
+
 ## The problem
 
-I built ClearWeek for Chloe Nguyen, a nursing student, varsity swimmer, and part-time cashier. Her class, team, and work commitments can all be on the calendar, yet she still has to piece together what happened when two of them collide. I focused on the point where a student athlete with a shift job needs to decide what to do after a swap falls through.
+I plan to build ClearWeek for Chloe Nguyen, a nursing student, varsity swimmer, and part-time cashier. Her class, team, and work commitments can all be on a calendar. When two of them collide, she still has to piece together what happened and what to do. I will focus on one moment: a swap for her work shift fell through, and she needs a next step.
 
-## What I found
+## What Chloe's schedule shows
 
-In the Chloe persona file, `image17.png` shows the team bus to Saint John from 2 to 6 PM and the Harbour Foods shift from 4 to 10 PM. The shift detail in `image10.png` confirms Friday, October 23, 2026 and shows that the work calendar is a read-only subscription. The notification in `image2.png` says the Friday swap was declined and Chloe was still scheduled. The schedule therefore shows a two-hour overlap from 4 to 6 PM in Halifax. The work reminders in `image4.png` and `image5.png` also show an overdue availability update and identify Dana as the store manager.
+- Her team calendar shows the team bus to Saint John from 2 to 6 PM.
+- Her work calendar shows a Harbour Foods shift from 4 to 10 PM on Friday, October 23, 2026. That calendar is read-only, so she cannot change the shift there.
+- A notification says her swap for that Friday was declined and she is still scheduled.
+- The bus and the shift overlap for two hours, from 4 to 6 PM, in Halifax time.
+- Her work reminders show that an availability update is overdue. They also show that Dana is the store manager.
 
-## What I want ClearWeek to do
+## What ClearWeek will do
 
-I want Chloe to see the conflict, check where it came from, and prepare a practical next step in one place. ClearWeek calculates the overlap and offers a draft asking Dana about approved coverage. ClearWeek is an AI-assisted workflow, not an autonomous planner: deterministic code finds the overlap, and in private mode Gemini makes one constrained choice of framing and which verified details to include while the server writes every factual sentence. The public demo makes no AI calls. Chloe can edit the message, review the version she wants, and approve it to create a follow-up task in ClearWeek.
+ClearWeek will be a web page. Chloe opens it and sees her Friday as a list: swim practice, class, the bus, and the shift. Next to the list she sees one flagged conflict: "2 hours overlap, 4 to 6 PM". She can open a list of evidence to check where each fact came from, such as the declined swap notice. She then clicks "Prepare draft" and gets a short message asking Dana whether approved coverage is possible. She can edit the message, review the final version, and approve it. Approving saves a follow-up task in ClearWeek. The task stays open and the conflict stays open until Chloe writes down what Dana confirmed.
+
+## What it is built with
+
+I plan to build a web app, not a chatbot, in TypeScript with Next.js and React. Plain code that does the math, with no AI, will find the overlap. Gemini, Google's AI model, will be used only in the signed-in version, in one small step described next. I will also make an open demo with no sign-in and no AI calls, using sample data from Chloe's October 2026 screenshots.
+
+## Where AI fits
+
+In the signed-in version, Gemini will make one narrow choice. It will pick one of two ways to word the ask (ask for coverage, or ask for guidance) and up to two verified details to include. The server will check that choice. The server will write every sentence about times, places, and the swap. Gemini will not send anything, will not use tools, and will not change any shift. ClearWeek is an AI-assisted workflow, not an AI that plans on its own.
 
 ## Where I draw the line
 
-The project uses a historical sample. Chloe remains responsible for contacting Dana and confirming what happens. ClearWeek keeps the conflict open until she records supporting information about the outcome. The prototype uses sample data and has no live calendar connection, message sending, or employer scheduling access.
+ClearWeek will use sample data only. It will have no live calendar connection, will not send messages, and will have no access to the employer's scheduling system. Chloe stays responsible for contacting Dana and confirming what happens.
