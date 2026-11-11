@@ -4,7 +4,7 @@ async function reviewDraft(page: Page, text: string) {
   await page.goto("/");
   await page.getByRole("button", { name: "Prepare draft" }).click();
   await page.getByRole("textbox", { name: "Draft message" }).fill(text);
-  await expect(page.getByText("Edited by you · based on the offline demo draft")).toBeVisible();
+  await expect(page.getByText("Edited by you · based on the open demo draft")).toBeVisible();
   await page.getByRole("button", { name: "Review draft" }).click();
 }
 
@@ -21,7 +21,7 @@ test("a second tab's different approval conflicts and leaves the saved task unch
   await expect(a.getByText("Task created", { exact: true })).toHaveCount(0);
   await expect(a.getByRole("heading", { name: "Follow-up tasks" })).toBeVisible();
   await expect(a.locator(".saved-task")).toContainText("Hi Dana, second tab text.");
-  await expect(a.locator(".saved-task")).toContainText("Edited by you · based on the offline demo draft");
+  await expect(a.locator(".saved-task")).toContainText("Edited by you · based on the open demo draft");
   await a.reload();
   await expect(a.locator(".saved-task")).toContainText("Hi Dana, second tab text.");
 });

@@ -4,7 +4,7 @@ export const date = "2026-10-23";
 export const zone = "America/Halifax";
 export const evidence = {
   bus: { title: "Team calendar", reference: "image17.png · Calendar widget", detail: "Team bus to Saint John, 2–6 PM." },
-  shift: { title: "Work calendar", reference: "image10.png · Event details", detail: "Harbour Foods, 4–10 PM. The subscribed calendar says the shift cannot be edited there." },
+  shift: { title: "Work calendar", reference: "image10.png · Event details", detail: "Harbour Foods, 4–10 PM. The work calendar is view only, so the shift cannot be edited there." },
   swap: { title: "Shift swap notification", reference: "image2.png · Notifications", detail: "The October 23 swap was declined. The notification says Chloe is still scheduled." },
   availability: { title: "Work reminder", reference: "image4.png / image5.png · Reminders", detail: "Updating availability with the meet schedule was overdue. The Work list identifies Dana as store manager." },
   morning: { title: "Morning schedule", reference: "image17.png · Calendar widget", detail: "Swim practice 5:30–7 AM and NURS 2050 Health Assessment 8:35–9:55 AM." },

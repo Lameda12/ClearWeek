@@ -4,7 +4,7 @@ test("mobile evidence, edit, explicit approval, and reload", async ({ page }, te
   page.on("pageerror", error => browserErrors.push(error.message));
   page.on("console", message => { if (message.type() === "error") browserErrors.push(message.text()); });
   await page.goto("/");
-  await expect(page.getByText("Historical sample", { exact: true })).toBeVisible();
+  await expect(page.getByText("Sample data", { exact: true })).toBeVisible();
   await expect(page.getByText("2 hours overlap")).toBeVisible();
   await expect(page.getByRole("button", { name: "Prepare draft" })).toBeEnabled();
   await page.screenshot({ path: testInfo.outputPath("mobile.png"), fullPage: true, caret: "initial" });
@@ -37,7 +37,7 @@ test("dismisses a draft without writing and denies anonymous private calls", asy
   expect((await request.post("/api/workspace", { data: { type: "resolve", evidence: "Untrusted content" } })).status()).toBe(401);
   await page.goto("/");
   await page.getByRole("button", { name: "Prepare draft" }).click();
-  await expect(page.getByText("Offline demo draft")).toBeVisible();
+  await expect(page.getByText("Open demo draft")).toBeVisible();
   await page.getByRole("button", { name: "Dismiss" }).click();
   await expect(page.getByText("Draft dismissed")).toBeVisible();
   await expect(page.getByText("No actions recorded yet.")).toBeVisible();
