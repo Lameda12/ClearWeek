@@ -73,7 +73,16 @@ export async function POST(request: Request) {
       usage = response.usageMetadata;
       return response.text ?? "";
     }, process.env.CLEARWEEK_SMOKE_SINGLE_ATTEMPT !== "true");
-    if (outcome.source === "fallback") return respond("fallback", outcome.suggestion, outcome.reason);
+    if (outcome.source === "fallback") {
+      // The provider refused the call, so nothing was billed: give the reservation back. A timeout or an unusable
+      // answer keeps it, because that call may have been billed. If the release function is not in the database
+      // yet, or fails, the reservation simply stays, which is the cautious outcome.
+      if (outcome.answered) {
+        const { error: releaseError } = await db.rpc("clearweek_release", { p_id: id, p_owner: owner });
+        if (releaseError) console.error("[clearweek] reservation could not be released", { code: releaseError.code ?? null });
+      }
+      return respond("fallback", outcome.suggestion, outcome.reason);
+    }
 
     const input = usage?.promptTokenCount ?? null;
     const output = usage?.candidatesTokenCount === undefined ? null : usage.candidatesTokenCount + (usage.thoughtsTokenCount ?? 0);

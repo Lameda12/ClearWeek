@@ -8,12 +8,14 @@ const world = {
   generate: async (): Promise<{ text: string; usageMetadata?: object }> => ({ text: '{"framing":"guidance","details":["swap"]}' }),
   calls: 0,
   ledgerUpdates: 0,
+  releases: [] as unknown[],
+  release: { data: true as unknown, error: null as { code: string } | null },
 };
 
 vi.mock("@supabase/supabase-js", () => ({
   createClient: () => ({
     auth: { getUser: async () => ({ data: { user: { id: OWNER } }, error: null }) },
-    rpc: async () => world.reserve,
+    rpc: async (name: string, args: unknown) => { if (name !== "clearweek_release") return world.reserve; world.releases.push(args); return world.release; },
     from: () => ({ update: () => ({ eq: async () => { world.ledgerUpdates++; return { error: world.ledgerWrite }; } }) }),
   }),
 }));
@@ -42,7 +44,7 @@ beforeEach(() => {
   });
   delete process.env.CLEARWEEK_SMOKE_SINGLE_ATTEMPT;
   Object.assign(world, {
-    reserve: { data: { allowed: true }, error: null }, ledgerWrite: null, calls: 0, ledgerUpdates: 0,
+    reserve: { data: { allowed: true }, error: null }, ledgerWrite: null, calls: 0, ledgerUpdates: 0, releases: [], release: { data: true, error: null },
     generate: async () => ({ text: '{"framing":"guidance","details":["swap"]}', usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 10 } }),
   });
   vi.restoreAllMocks();
@@ -132,6 +134,45 @@ describe("draft route when Gemini cannot be used", () => {
     world.generate = async () => { throw { status: 503 }; };
     expect((await prepare()).body.source).toBe("fallback");
     expect(world.calls).toBe(1);
+  });
+});
+
+describe("releasing a reservation after a failed call", () => {
+  it("releases it when Gemini answered with an error, for this owner and this reservation only", async () => {
+    world.generate = async () => { throw Object.assign(new Error("overloaded"), { status: 503 }); };
+    expect((await prepare()).body.source).toBe("fallback");
+    expect(world.releases).toHaveLength(1);
+    expect(world.releases[0]).toMatchObject({ p_owner: OWNER, p_id: expect.stringMatching(/^[0-9a-f-]{36}$/) });
+    world.releases = [];
+    world.generate = async () => { throw Object.assign(new Error("quota"), { status: 429 }); };
+    await prepare();
+    expect(world.releases).toHaveLength(1);
+  });
+  it("keeps it when the call may have been billed: a network failure or an unusable answer", async () => {
+    world.generate = async () => { throw new TypeError("fetch failed"); };
+    expect((await prepare()).body.source).toBe("fallback");
+    world.generate = async () => ({ text: "not json" });
+    expect((await prepare()).body.source).toBe("fallback");
+    expect(world.releases).toEqual([]);
+  });
+  it("keeps it after a timeout", async () => {
+    const outcome = await suggestOrFallback(async () => true, () => new Promise<string>(() => {}), true, { timeoutMs: 20, backoffMs: 5 });
+    expect(outcome).toMatchObject({ source: "fallback", answered: false });
+  });
+  it("never releases a successful call, a refused reservation or a cached answer", async () => {
+    await prepare();
+    world.reserve = { data: { allowed: false }, error: null };
+    await prepare();
+    world.reserve = { data: { cached: { framing: "coverage", details: [] } }, error: null };
+    await prepare();
+    expect(world.releases).toEqual([]);
+  });
+  it("still returns the fallback draft when the release function is missing from the database", async () => {
+    world.generate = async () => { throw Object.assign(new Error("overloaded"), { status: 503 }); };
+    world.release = { data: null, error: { code: "PGRST202" } };
+    const { response, body } = await prepare();
+    expect(response.status).toBe(200);
+    expect(body.source).toBe("fallback");
   });
 });
 

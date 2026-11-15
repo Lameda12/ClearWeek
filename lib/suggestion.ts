@@ -55,7 +55,8 @@ export async function requestSuggestion(reserve: () => Promise<boolean>, generat
 }
 
 export type FallbackReason = "not_configured" | "ledger_unavailable" | "rate_limited" | "provider_failed";
-export type Outcome = { source: "gemini"; suggestion: Suggestion } | { source: "fallback"; suggestion: Suggestion; reason: "provider_failed" };
+/** `answered` is true when the provider replied with an HTTP error, which is not billed; false for a timeout, a network failure or unusable output, which may have been. */
+export type Outcome = { source: "gemini"; suggestion: Suggestion } | { source: "fallback"; suggestion: Suggestion; reason: "provider_failed"; answered: boolean };
 
 /**
  * Never throws: when the provider fails, times out or answers with something unusable,
@@ -64,7 +65,8 @@ export type Outcome = { source: "gemini"; suggestion: Suggestion } | { source: "
 export async function suggestOrFallback(...args: Parameters<typeof requestSuggestion>): Promise<Outcome> {
   try {
     return { source: "gemini", suggestion: await requestSuggestion(...args) };
-  } catch {
-    return { source: "fallback", suggestion: fallbackSuggestion, reason: "provider_failed" };
+  } catch (error) {
+    const status = Number((error as { status?: unknown } | null)?.status);
+    return { source: "fallback", suggestion: fallbackSuggestion, reason: "provider_failed", answered: status >= 400 && status !== 408 };
   }
 }
