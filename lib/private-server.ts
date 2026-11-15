@@ -1,10 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
-import { httpError } from "./http";
+import { z } from "zod";
+import { HttpError, httpError, type ApiError } from "./http";
 import { assertIssued, isServerIssued } from "./provenance";
 import { emptyState, parseStoredAction, sameAction, type Action, type Workspace } from "./workflow";
 
 export const privateMode = () => process.env.CLEARWEEK_MODE === "private";
 export { httpError };
+
+const rowSchema = z.object({ payload: z.unknown(), created_at: z.string() });
 const conflictId = "bus:shift";
 
 export async function authorize(request: Request) {
@@ -23,7 +26,8 @@ type Session = Awaited<ReturnType<typeof authorize>>;
 export async function readWorkspace({ db, owner }: Session): Promise<Workspace> {
   const { data, error } = await db.from("clearweek_actions").select("kind,payload,created_at").eq("owner", owner);
   if (error) throw error;
-  return data.reduce<Workspace>((state, row) => {
+  return data.reduce<Workspace>((state, raw) => {
+    const row = rowSchema.parse(raw);
     const action = parseStoredAction(row.payload);
     return action.type === "approve"
       ? { ...state, tasks: [{ proposal: action.proposal, createdAt: row.created_at, verified: isServerIssued(action.proposal) }] }
@@ -54,15 +58,27 @@ export async function saveAction({ db, owner }: Session, action: Action) {
   }
 }
 
-export function failure(error: unknown) {
-  const status = Number((error as { status?: unknown })?.status);
-  const messages: Record<number, string> = {
-    400: "Check your entry and try again.",
-    401: "Sign in to use the private workspace.",
-    403: "This account cannot access the workspace.",
-    409: (error as { message?: string }).message ?? "A different entry is already saved. Nothing was changed.",
-    429: "Draft limit reached. Try again later.",
-    503: "The service is unavailable right now.",
-  };
-  return Response.json({ error: messages[status] ?? "Something went wrong. Please try again." }, { status: messages[status] ? status : 500 });
+// What the user is told for each status. 409 alone passes its own message through, because it names what is saved.
+const messages: Record<number, string> = {
+  400: "Check your entry and try again.",
+  401: "Sign in to use the private workspace.",
+  403: "This account cannot access the workspace.",
+  429: "Draft limit reached. Try again later.",
+  503: "The service is unavailable right now.",
+};
+
+/**
+ * Turns any thrown value into a typed JSON error. Only an HttpError raised by this application picks the status;
+ * anything else (a database error, a provider error that happens to carry a status, a bug) is logged on the
+ * server and answered with a plain 500. No stack trace or upstream text reaches the browser.
+ */
+export function failure(error: unknown): Response {
+  const headers = { "Cache-Control": "no-store" };
+  if (error instanceof HttpError) {
+    const message = error.status === 409 ? error.message : messages[error.status];
+    if (message) return Response.json({ error: message, code: error.code } satisfies ApiError, { status: error.status, headers });
+  }
+  const detail = error as { name?: unknown; code?: unknown; message?: unknown } | null;
+  console.error("[clearweek] request failed", { name: String(detail?.name ?? typeof error), code: detail?.code ?? null, message: String(detail?.message ?? "") });
+  return Response.json({ error: "Something went wrong. Please try again.", code: "internal" } satisfies ApiError, { status: 500, headers });
 }
