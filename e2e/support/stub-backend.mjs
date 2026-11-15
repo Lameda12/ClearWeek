@@ -10,7 +10,7 @@ const TOKEN = "e2e.stub.token";
 const port = Number(process.env.E2E_STUB_PORT ?? 3190);
 
 let state;
-const reset = () => { state = { actions: new Map(), gemini: "up", reserve: "allowed", geminiCalls: 0, reservations: 0, ledgerUpdates: 0 }; };
+const reset = () => { state = { actions: new Map(), gemini: "up", reserve: "allowed", geminiCalls: 0, reservations: 0, ledgerUpdates: 0, releases: 0 }; };
 reset();
 
 const user = { id: OWNER, aud: "authenticated", role: "authenticated", email: EMAIL, app_metadata: {}, user_metadata: {}, created_at: "2026-11-01T00:00:00Z" };
@@ -55,6 +55,7 @@ createServer(async (req, res) => {
     return send(res, 200, rows);
   }
   if (path === "/rest/v1/rpc/clearweek_reserve") { state.reservations++; return send(res, 200, { allowed: state.reserve === "allowed" }); }
+  if (path === "/rest/v1/rpc/clearweek_release") { state.releases++; return send(res, 200, true); }
   if (path === "/rest/v1/clearweek_ai_requests") { state.ledgerUpdates++; return send(res, 204); }
 
   // Gemini.

@@ -51,8 +51,8 @@ test("Gemini down: the full flow still works with a labelled, signed fallback dr
   await expect(page.getByRole("textbox", { name: "Draft message" })).toHaveValue(fixedDraft);
   await expect(page.getByText("Prepared draft · Gemini was unavailable, so this is not written by AI")).toBeVisible();
   await expect(page.locator("p.error")).toHaveCount(0);
-  // One try, one retry, and no usage recorded for a call that never succeeded.
-  expect(await stubState(page.request)).toMatchObject({ geminiCalls: 2, reservations: 1, ledgerUpdates: 0 });
+  // One try, one retry, no usage recorded for a call that never succeeded, and the reservation given back.
+  expect(await stubState(page.request)).toMatchObject({ geminiCalls: 2, reservations: 1, ledgerUpdates: 0, releases: 1 });
 
   await approveAndReload(page, "Prepared draft · Gemini was unavailable");
   const saved = await stubState(page.request);
