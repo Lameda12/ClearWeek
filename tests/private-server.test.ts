@@ -20,7 +20,7 @@ vi.mock("@google/genai", () => ({
 
 import { GET, POST as workspacePost } from "../app/api/workspace/route";
 import { POST as proposalPost } from "../app/api/proposal/route";
-import { authorize, failure, readWorkspace, saveAction } from "../lib/private-server";
+import { authorize, failure, httpError, readWorkspace, saveAction } from "../lib/private-server";
 import { assertIssued, isServerIssued, sign, verify } from "../lib/provenance";
 import type { Suggestion } from "../lib/suggestion";
 import { draft, editProposal, normalizeWorkspace, type Proposal, type Action } from "../lib/workflow";
@@ -156,8 +156,8 @@ describe("saveAction against the primary-key contract", () => {
     await expect(saveAction(s, approval(issue(draft("gemini", suggestion))))).rejects.toMatchObject({ status: 409 });
   });
   it("maps conflicts to a 409 response without a generic message", async () => {
-    const response = failure(Object.assign(new Error("A different follow-up is already saved. Nothing was changed."), { status: 409 }));
+    const response = failure(httpError(409, "A different follow-up is already saved. Nothing was changed."));
     expect(response.status).toBe(409);
-    expect(await response.json()).toEqual({ error: "A different follow-up is already saved. Nothing was changed." });
+    expect(await response.json()).toEqual({ error: "A different follow-up is already saved. Nothing was changed.", code: "conflict" });
   });
 });

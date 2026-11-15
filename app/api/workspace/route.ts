@@ -24,10 +24,11 @@ export async function POST(request: Request) {
       }
       chunks.push(value);
     }
+    // validateAction is the Zod schema for the two allowed actions; anything else, or broken JSON, is a 400.
     let action;
     try { action = validateAction(JSON.parse(Buffer.concat(chunks).toString("utf8"))); }
     catch { throw httpError(400, "Invalid approval or resolution."); }
     await saveAction(session, action);
-    return Response.json(await readWorkspace(session));
+    return Response.json(await readWorkspace(session), { headers: { "Cache-Control": "no-store" } });
   } catch (error) { return failure(error); }
 }

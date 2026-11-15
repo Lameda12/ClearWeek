@@ -11,14 +11,15 @@ export class ConflictError extends Error {
 }
 
 const message = z.string().trim().min(1).max(1600);
-const source = z.enum(["demo", "gemini"]);
+// "demo": the open demo's example. "gemini": Gemini chose the wording. "fallback": the signed-in server used its fixed wording because Gemini could not be asked.
+const source = z.enum(["demo", "gemini", "fallback"]);
 const proof = z.string().regex(/^[0-9a-f]{64}$/);
 const base = z.strictObject({ version: z.uuid(), message, proof: proof.optional() });
 
 /**
  * A draft as held by the browser and posted for approval.
  * `source` is where the text originally came from; `edited` is whether the user changed it since.
- * `proof` is a server-issued HMAC over an unedited Gemini draft; `base` carries the original draft of an edited one.
+ * `proof` is a server-issued HMAC over an unedited server draft (Gemini or fallback); `base` carries the original draft of an edited one.
  * Neither field is trusted on its own: the private server re-verifies the proof before saving.
  */
 export const proposalSchema = z.strictObject({
@@ -27,13 +28,13 @@ export const proposalSchema = z.strictObject({
   const issue = (text: string) => ctx.addIssue({ code: "custom", message: text });
   if (!p.edited) {
     if (p.base) issue("An unedited draft has no base.");
-    if (p.source === "gemini" && !p.proof) issue("A Gemini draft needs its server proof.");
+    if (p.source !== "demo" && !p.proof) issue("A server draft needs its server proof.");
     if (p.source === "demo" && p.proof) issue("An offline draft has no proof.");
   } else {
     if (!p.base) return issue("An edited draft needs its original draft.");
     if (p.proof) issue("An edited draft carries proof on its base only.");
     if (p.base.version === p.version || p.base.message === p.message) issue("An edited draft must differ from its base.");
-    if (p.source === "gemini" && !p.base.proof) issue("The original Gemini draft needs its server proof.");
+    if (p.source !== "demo" && !p.base.proof) issue("The original server draft needs its server proof.");
     if (p.source === "demo" && p.base.proof) issue("An offline draft has no proof.");
   }
 });
@@ -94,13 +95,14 @@ export function editProposal(current: Proposal, text: string): Proposal {
 }
 
 export function provenanceLabel(p: StoredProposal, verified: boolean) {
-  const origin = p.source === "gemini" ? "Gemini-assisted" : "open demo";
-  if (p.legacy) return `Saved before draft checks existed · recorded as ${origin}${p.source === "gemini" ? ", could not be checked" : ""}`;
-  if (p.edited) {
-    if (p.source === "demo") return "Edited by you · based on the open demo draft";
-    return verified ? "Edited by you · based on an AI suggestion checked by the server" : "Edited by you · AI suggestion could not be checked";
+  const origin = { gemini: "Gemini-assisted", fallback: "a prepared draft", demo: "open demo" }[p.source];
+  if (p.legacy) return `Saved before draft checks existed · recorded as ${origin}${p.source === "demo" ? "" : ", could not be checked"}`;
+  if (p.source === "demo") return p.edited ? "Edited by you · based on the open demo draft" : "Open demo draft";
+  if (p.source === "fallback") {
+    if (p.edited) return verified ? "Edited by you · based on a prepared draft, not written by AI" : "Edited by you · prepared draft could not be checked";
+    return verified ? "Prepared draft · Gemini was unavailable, so this is not written by AI" : "Recorded as a prepared draft · could not be checked";
   }
-  if (p.source === "demo") return "Open demo draft";
+  if (p.edited) return verified ? "Edited by you · based on an AI suggestion checked by the server" : "Edited by you · AI suggestion could not be checked";
   return verified ? "Gemini-assisted draft · checked by the server" : "Recorded as Gemini-assisted draft · could not be checked";
 }
 
