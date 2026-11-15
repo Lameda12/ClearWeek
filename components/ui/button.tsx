@@ -4,16 +4,26 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+// Colours come from the tokens in app/globals.css.
 const buttonVariants = cva(
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-3 disabled:pointer-events-none disabled:opacity-45",
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--r-control)] px-4 text-sm font-semibold transition-transform duration-[var(--quick)] active:translate-y-px disabled:pointer-events-none disabled:opacity-45",
   { variants: { variant: {
-    default: "bg-[#153f4b] text-white hover:bg-[#245a67]",
-    outline: "border border-[#c7d5d7] bg-white text-[#153f4b] hover:bg-[#eff5f5]",
-    ghost: "text-[#315663] hover:bg-[#e9f1f2]",
+    default: "bg-[var(--water-deep)] text-[var(--on-deep)] hover:bg-[var(--water)]",
+    outline: "border border-[var(--line)] bg-[var(--surface)] text-[var(--water-deep)] hover:border-[var(--water)] hover:bg-[var(--water-wash)]",
+    ghost: "text-[var(--water-deep)] hover:bg-[var(--water-wash)]",
   } }, defaultVariants: { variant: "default" } },
 );
 
-export function Button({ className, variant, asChild, ...props }: React.ComponentProps<"button"> & VariantProps<typeof buttonVariants> & { asChild?: boolean }) {
+type Props = React.ComponentProps<"button"> & VariantProps<typeof buttonVariants> & {
+  asChild?: boolean;
+  /** Shows a spinner and marks the button busy. The caller supplies the "doing…" label as children. */
+  pending?: boolean;
+};
+
+export function Button({ className, variant, asChild, pending, children, ...props }: Props) {
   const Component = asChild ? Slot : "button";
-  return <Component data-slot="button" className={twMerge(clsx(buttonVariants({ variant, className })))} {...props} />;
+  return <Component data-slot="button" type={asChild ? undefined : "button"} aria-busy={pending || undefined}
+    className={twMerge(clsx(buttonVariants({ variant, className })))} {...props}>
+    {pending && <span className="spinner" aria-hidden="true" />}{children}
+  </Component>;
 }
