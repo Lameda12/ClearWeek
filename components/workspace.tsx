@@ -108,6 +108,8 @@ export function WorkspaceView({ view, privateMode, demoState, supabaseUrl, publi
     async function load() {
       if (privateMode && !token) return;
       try {
+        // A demo state link starts the demo over, so the draft, error and empty screens can be shown after a task was saved.
+        if (demoState && !privateMode) localStorage.removeItem(storageKey);
         const saved = privateMode ? await api<unknown>("/api/workspace", token) : JSON.parse(localStorage.getItem(storageKey) ?? "null");
         const next = normalizeWorkspace(saved);
         if (!active) return;
