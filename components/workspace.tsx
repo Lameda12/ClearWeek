@@ -12,12 +12,13 @@ import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Textarea, fieldClass } from "@/components/ui/textarea";
+import { demoStates, type DemoState } from "@/lib/demo-state";
 import { readDraft, writeDraft } from "@/lib/draft-store";
 import type { ScheduleView } from "@/lib/schedule-view";
 import { applyAction, draft, editProposal, emptyState, normalizeWorkspace, provenanceLabel, type Action, type Proposal, type Workspace } from "@/lib/workflow";
 
 const storageKey = "clearweek:oct23:v1";
-type Props = { view: ScheduleView; privateMode: boolean; supabaseUrl?: string; publishableKey?: string };
+type Props = { view: ScheduleView; privateMode: boolean; demoState?: DemoState; supabaseUrl?: string; publishableKey?: string };
 type Pending = "prepare" | "approve" | "resolve" | "sign-in" | "sign-out";
 type Problem = { where: "load" | "prepare" | "approve" | "resolve" | "sign-in" | "sign-out"; message: string; status?: number };
 type FocusTarget = "draft" | "saved" | "prepare" | "recorded";
@@ -48,9 +49,9 @@ async function api<T>(path: string, token: string, options?: RequestInit): Promi
 }
 
 /** The label under "Draft message". Drafts no AI wrote say so plainly. */
-const originLabel = (p: Proposal) => p.edited ? provenanceLabel(p, true) : ({ demo: "Open demo draft, no AI used", fallback: "Template draft, no AI used", gemini: provenanceLabel(p, true) })[p.source];
+const originLabel = (p: Proposal, template: boolean) => p.edited ? provenanceLabel(p, true) : template ? "Template draft, no AI used" : ({ demo: "Open demo draft, no AI used", fallback: "Template draft, no AI used", gemini: provenanceLabel(p, true) })[p.source];
 
-export function WorkspaceView({ view, privateMode, supabaseUrl, publishableKey }: Props) {
+export function WorkspaceView({ view, privateMode, demoState, supabaseUrl, publishableKey }: Props) {
   const { conflict, day } = view;
   const configured = Boolean(supabaseUrl && publishableKey);
   // The Supabase client is only needed when signed-in mode is on, so the open demo never downloads it.
@@ -107,6 +108,8 @@ export function WorkspaceView({ view, privateMode, supabaseUrl, publishableKey }
     async function load() {
       if (privateMode && !token) return;
       try {
+        // A demo state link starts the demo over, so the draft, error and empty screens can be shown after a task was saved.
+        if (demoState && !privateMode) localStorage.removeItem(storageKey);
         const saved = privateMode ? await api<unknown>("/api/workspace", token) : JSON.parse(localStorage.getItem(storageKey) ?? "null");
         const next = normalizeWorkspace(saved);
         if (!active) return;
@@ -115,7 +118,13 @@ export function WorkspaceView({ view, privateMode, supabaseUrl, publishableKey }
         // a finished follow-up leaves nothing to resume.
         if (!resumed.current) {
           resumed.current = true;
-          const draftInProgress = next.tasks.length === 0 ? readDraft() : null;
+          const draftInProgress = demoState ? null : next.tasks.length === 0 ? readDraft() : null;
+          // A demo state link replaces whatever draft this tab had, so each link shows exactly its screen.
+          if (demoState && next.tasks.length === 0 && ["draft", "template", "error"].includes(demoState)) {
+            const seeded = draft("demo", { framing: "coverage", details: ["swap", "availability"] });
+            setProposal(seeded);
+            if (demoState === "error") { setReviewedProposal(seeded); setProblem({ where: "approve", message: notCreated }); }
+          }
           if (draftInProgress) { setProposal(draftInProgress.proposal); setReviewedProposal(draftInProgress.reviewed ? draftInProgress.proposal : null); }
           setDraftLoaded(true);
         }
@@ -127,7 +136,7 @@ export function WorkspaceView({ view, privateMode, supabaseUrl, publishableKey }
     }
     void load();
     return () => { active = false; };
-  }, [privateMode, token, attempt]);
+  }, [privateMode, token, attempt, demoState]);
 
   // The draft in progress is saved for this tab as it changes, once the saved workspace (and any resumed draft) is known.
   useEffect(() => {
@@ -228,7 +237,7 @@ export function WorkspaceView({ view, privateMode, supabaseUrl, publishableKey }
 
   const task = state.tasks[0];
   const resolved = Boolean(state.resolution);
-  const loading = privateMode && Boolean(session) && !ready && !(problem?.where === "load");
+  const loading = demoState === "loading" || (privateMode && Boolean(session) && !ready && !(problem?.where === "load"));
   const history = [
     ...(task ? [{ label: "Follow-up approved and created", time: task.createdAt }] : []),
     ...(state.resolution ? [{ label: "Resolution recorded", time: state.resolution.createdAt }] : []),
@@ -319,11 +328,11 @@ export function WorkspaceView({ view, privateMode, supabaseUrl, publishableKey }
                     {!proposal && !task && resolved && <p>This conflict is marked as resolved, so no follow-up is needed.</p>}
 
                     {proposal && <div className="appear flex flex-col gap-3">
-                      {proposal.source === "fallback"
+                      {proposal.source === "fallback" || (demoState === "template" && !proposal.edited)
                         ? <p role="status" className="rounded-[var(--r-control)] bg-[var(--water-wash)] p-3 text-[var(--ink)]">Template draft. The AI suggestion was not available, so this is a standard message.</p>
                         : <p role="status" className={`${small} rounded-[var(--r-control)] bg-[var(--water-wash)] px-3 py-2 font-semibold text-[var(--water-deep)]`}>Draft prepared</p>}
                       <label htmlFor="draft-message" className={`${small} font-semibold`}>Draft message</label>
-                      <p className={`${small} text-[var(--muted)]`}>{originLabel(proposal)}</p>
+                      <p className={`${small} text-[var(--muted)]`}>{originLabel(proposal, demoState === "template")}</p>
                       <Textarea id="draft-message" name="draft-message" grow autoComplete="off" ref={draftRef} maxLength={1600} value={proposal.message} readOnly={busy} aria-describedby="draft-hint"
                         onChange={event => {
                           setReviewedProposal(null); setNotice("");
@@ -377,6 +386,12 @@ export function WorkspaceView({ view, privateMode, supabaseUrl, publishableKey }
             </>
             : <div className="grid gap-4 md:grid-cols-2 md:gap-x-12">{followUp}{actions}</div>}
         </>}
+
+        {!privateMode && <nav aria-label="Demo states" className={`${small} flex flex-wrap items-center gap-x-4`}>
+          <span className="text-[var(--muted)]">Demo states</span>
+          {demoStates.map(item => <a key={item.id} href={item.id === "default" ? "/?state=default" : `/?state=${item.id}`} aria-current={(demoState ?? "default") === item.id ? "page" : undefined}
+            className="inline-flex min-h-[var(--tap)] items-center font-semibold text-[var(--water)] underline-offset-4 hover:underline aria-[current=page]:underline">{item.label}</a>)}
+        </nav>}
 
         <footer className={`${small} flex min-h-[var(--tap)] flex-wrap items-center justify-between gap-2`}>
           <Link className="inline-flex min-h-[var(--tap)] items-center font-semibold text-[var(--water)] underline-offset-4 hover:underline" href="/adjacent">Try the adjacent example</Link>
