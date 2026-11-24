@@ -120,7 +120,7 @@ textarea, input { display: block; width: 100%; padding: 10px 12px; margin: 4px 0
 textarea:hover, input:hover { border-color: var(--muted); }
 textarea[readonly] { background: var(--ground); }
 textarea { min-height: 96px; resize: vertical; }
-.draft textarea { min-height: 168px; }
+.draft textarea { min-height: 168px; field-sizing: content; max-height: 70vh; }
 .draft p { font-size: 14px; }
 .buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .notice, .recorded, .saved-task, .saved-note { margin-top: 12px; background: var(--ok-wash); color: var(--ok); padding: 10px 12px; border-radius: var(--r-control); overflow-wrap: anywhere; }
@@ -168,4 +168,14 @@ footer { min-height: 64px; display: flex; flex-wrap: wrap; justify-content: spac
   .event { grid-template-columns: minmax(0, 1fr) auto; padding-block: 10px; }
   .event-time { grid-column: 1 / -1; }
   .event-note { grid-column: 1 / -1; }
+}
+
+/* design-qa: without field-sizing support the draft must still show every line on a narrow screen,
+   and the longer lane label must not be cut off at 320px. */
+@media (max-width: 520px) {
+  .draft textarea { min-height: 260px; }
+}
+@media (max-width: 360px) {
+  .lane { height: 36px; }
+  .lane-bar { white-space: normal; line-height: 1.15; font-size: 11px; }
 }
