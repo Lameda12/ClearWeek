@@ -9,7 +9,8 @@ const rows = [
 
 /** What the page shows while the saved workspace loads: the conflict statement, the ruler and the two lists, as grey blocks. */
 export function LoadingSkeleton() {
-  return <div role="status" aria-busy="true" className="flex flex-col gap-6 md:gap-10">
+  // The id and tabIndex match the day ruler, so "Skip to schedule" has a target in every state.
+  return <div id="schedule" tabIndex={-1} role="status" aria-busy="true" className="flex scroll-mt-4 flex-col gap-6 md:gap-10">
     <p className="sr-only">Loading the saved workspace…</p>
     <div className="flex flex-col gap-3" aria-hidden="true">
       <div className={`${block} h-11 w-[280px] md:w-[420px]`} />
