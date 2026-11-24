@@ -17,11 +17,11 @@ test("a second tab's different approval conflicts and leaves the saved task unch
   await expect(b.getByText("Task created", { exact: true })).toBeVisible();
 
   await a.getByRole("button", { name: "Approve & create task" }).click();
-  await expect(a.locator("p.error")).toHaveText("A different follow-up is already saved. Nothing was changed.");
+  await expect(a.locator("p[role=alert]")).toHaveText("A different follow-up is already saved. Nothing was changed.");
   await expect(a.getByText("Task created", { exact: true })).toHaveCount(0);
   await expect(a.getByRole("heading", { name: "Follow-up tasks" })).toBeVisible();
-  await expect(a.locator(".saved-task")).toContainText("Hi Dana, second tab text.");
-  await expect(a.locator(".saved-task")).toContainText("Edited by you · based on the open demo draft");
+  await expect(a.locator("#follow-up")).toContainText("Hi Dana, second tab text.");
+  await expect(a.locator("#follow-up")).toContainText("Edited by you · based on the open demo draft");
   await a.reload();
-  await expect(a.locator(".saved-task")).toContainText("Hi Dana, second tab text.");
+  await expect(a.locator("#follow-up")).toContainText("Hi Dana, second tab text.");
 });

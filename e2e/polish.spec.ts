@@ -4,10 +4,10 @@ test("unreadable saved demo data offers a reset and the flow works again", async
   await page.goto("/");
   await page.evaluate(() => localStorage.setItem("clearweek:oct23:v1", "{not json"));
   await page.reload();
-  await expect(page.locator("p.error")).toHaveText("The demo data saved in this browser could not be read.");
+  await expect(page.locator("p[role=alert]")).toHaveText("The demo data saved in this browser could not be read.");
   await expect(page.getByRole("button", { name: "Prepare draft" })).toBeDisabled();
   await page.getByRole("button", { name: "Reset demo data" }).click();
-  await expect(page.locator("p.error")).toHaveCount(0);
+  await expect(page.locator("p[role=alert]")).toHaveCount(0);
   await page.getByRole("button", { name: "Prepare draft" }).click();
   await expect(page.getByRole("textbox", { name: "Draft message" })).toBeVisible();
 });
@@ -34,7 +34,7 @@ test("dismissing returns focus to Prepare draft, and a resolved conflict leaves 
   await page.getByRole("button", { name: "Prepare draft" }).click();
   await page.getByRole("button", { name: "Dismiss" }).click();
   await expect(page.getByRole("button", { name: "Prepare draft" })).toBeFocused();
-  await page.getByText("Record a resolution").click();
+  await page.getByText("Note how this was sorted out").click();
   const save = page.getByRole("button", { name: "Save resolution" });
   await expect(save).toBeDisabled();
   await expect(page.getByText("Write at least 8 characters")).toBeVisible();
@@ -47,11 +47,8 @@ test("dismissing returns focus to Prepare draft, and a resolved conflict leaves 
 test("the overlap is drawn and marked on both colliding commitments, with no sideways scroll at 320px", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 700 });
   await page.goto("/");
-  await expect(page.getByRole("img", { name: /They overlap from 4:00 PM to 6:00 PM/ })).toBeVisible();
-  await expect(page.getByText("Overlaps Harbour Foods shift")).toBeVisible();
-  await expect(page.getByText("Overlaps Team bus to Saint John")).toBeVisible();
-  await page.getByRole("link", { name: /1 conflict to review/ }).click();
-  await expect(page.getByRole("heading", { name: "Schedule conflict" })).toBeInViewport();
+  await expect(page.locator("figcaption")).toContainText("Team bus to Saint John and Harbour Foods shift overlap from 4 to 6 PM.");
+  await expect(page.getByText("Overlap 4 to 6 PM")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
 });
 

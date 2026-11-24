@@ -8,8 +8,9 @@ test("mobile evidence, edit, explicit approval, and reload", async ({ page }, te
   await expect(page.getByText("2 hours overlap")).toBeVisible();
   await expect(page.getByRole("button", { name: "Prepare draft" })).toBeEnabled();
   await page.screenshot({ path: testInfo.outputPath("mobile.png"), fullPage: true, caret: "initial" });
-  await page.getByText("View source evidence").click();
-  await expect(page.getByText(/image10.png/)).toBeVisible();
+  const evidence = page.locator("details", { hasText: "Where this comes from" });
+  await evidence.getByText("Where this comes from").click();
+  await expect(evidence.getByText("Event details")).toBeVisible();
   await page.getByRole("button", { name: "Prepare draft" }).click();
   await expect(page.getByText("No follow-up tasks yet.")).toBeVisible();
   const message = page.getByRole("textbox", { name: "Draft message" });
@@ -22,8 +23,7 @@ test("mobile evidence, edit, explicit approval, and reload", async ({ page }, te
   await expect(page.getByText("Task created", { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByText("Hi Dana, can we review coverage options?")).toBeVisible();
-  await expect(page.getByText("Conflict open", { exact: true })).toBeVisible();
-  await page.getByText("Record a resolution").click();
+  await page.getByText("Note how this was sorted out").click();
   await page.getByRole("textbox", { name: "Resolution evidence" }).fill("Example: Dana confirmed coverage.");
   await page.getByRole("button", { name: "Save resolution" }).click();
   await expect(page.getByText("Conflict resolved")).toBeVisible();
@@ -49,10 +49,10 @@ test("renders the desktop workspace in two columns", async ({ browser }, testInf
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   await page.goto("http://127.0.0.1:3187/");
   await expect(page.getByRole("button", { name: "Prepare draft" })).toBeEnabled();
-  const schedule = await page.getByRole("region", { name: "Day schedule" }).boundingBox();
-  const conflict = await page.getByRole("region", { name: "Schedule conflict" }).boundingBox();
-  expect(schedule?.y).toBe(conflict?.y);
-  expect(conflict!.x).toBeGreaterThan(schedule!.x + schedule!.width);
+  const action = await page.getByRole("region", { name: "Ask Dana about approved shift coverage" }).boundingBox();
+  const evidence = await page.getByRole("region", { name: "Where this comes from" }).boundingBox();
+  expect(Math.abs(action!.y - evidence!.y)).toBeLessThan(24);
+  expect(evidence!.x).toBeGreaterThan(action!.x + action!.width);
   await page.screenshot({ path: testInfo.outputPath("desktop.png"), fullPage: true, caret: "initial" });
   await page.close();
 });

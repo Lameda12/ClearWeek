@@ -32,8 +32,7 @@ async function approveAndReload(page: Page, label: string) {
   await expect(page.getByText("Task created", { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("heading", { name: "Ask Dana about shift coverage" })).toBeVisible();
-  await expect(page.locator(".saved-task")).toContainText(label);
-  await expect(page.getByText("Conflict open", { exact: true })).toBeVisible();
+  await expect(page.locator("#follow-up")).toContainText(label);
 }
 
 test("Gemini down: the full flow still works with a labelled, signed fallback draft", async ({ page }) => {
@@ -49,8 +48,9 @@ test("Gemini down: the full flow still works with a labelled, signed fallback dr
   expect(issued).toMatchObject({ source: "fallback", edited: false, message: fixedDraft });
   expect(issued.proof).toMatch(/^[0-9a-f]{64}$/);
   await expect(page.getByRole("textbox", { name: "Draft message" })).toHaveValue(fixedDraft);
-  await expect(page.getByText("Prepared draft · Gemini was unavailable, so this is not written by AI")).toBeVisible();
-  await expect(page.locator("p.error")).toHaveCount(0);
+  await expect(page.getByText("Template draft. The AI suggestion was not available, so this is a standard message.")).toBeVisible();
+  await expect(page.getByText("Template draft, no AI used")).toBeVisible();
+  await expect(page.locator("p[role=alert]")).toHaveCount(0);
   // One try, one retry, no usage recorded for a call that never succeeded, and the reservation given back.
   expect(await stubState(page.request)).toMatchObject({ geminiCalls: 2, reservations: 1, ledgerUpdates: 0, releases: 1 });
 
@@ -94,7 +94,7 @@ test("wrong password, a forged draft and a stranger's token are all refused", as
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill("not-the-password");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.locator("p.error")).toHaveText("Sign-in failed. Check your email and password.");
+  await expect(page.locator("p[role=alert]")).toHaveText("Sign-in failed. Check your email and password.");
 
   const headers = { Authorization: "Bearer e2e.stub.token" };
   const forged = { version: crypto.randomUUID(), message: "Hi Dana, forged.", source: "fallback", edited: false, proof: "0".repeat(64) };
@@ -121,4 +121,14 @@ test("no server secret reaches the browser in signed-in mode", async ({ page }) 
   for (const secret of [e2e.secretKey, e2e.geminiKey]) expect(everything).not.toContain(secret);
   // The publishable key is meant for the browser; its presence proves the scan really read the page.
   expect(everything).toContain(e2e.publishableKey);
+});
+
+test("a hard failure shows the error and keeps Prepare draft available", async ({ page }) => {
+  await control(page.request, {});
+  await signIn(page);
+  await page.route("**/api/proposal", route => route.abort());
+  await page.getByRole("button", { name: "Prepare draft" }).click();
+  await expect(page.locator("p[role=alert]")).toHaveText("ClearWeek could not be reached. Check your connection, then try again.");
+  await expect(page.getByRole("button", { name: "Prepare draft" })).toBeEnabled();
+  await expect(page.getByRole("textbox", { name: "Draft message" })).toHaveCount(0);
 });
